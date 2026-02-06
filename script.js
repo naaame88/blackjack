@@ -230,7 +230,7 @@ async function dealerTurn() {
     const hiddenCard = document.querySelector('#dealer-hidden-card .card-inner');
     if (hiddenCard) { hiddenCard.classList.add('flipped'); await sleep(800); }
     let dScore = calculateScore(dealerHand);
-    while (dScore < 18) {
+    while (dScore < 17) {
         const nextCard = deck.pop();
         dealerHand.push(nextCard);
         document.getElementById('dealer-cards').appendChild(createCardElement(nextCard));
