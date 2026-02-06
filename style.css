@@ -1,0 +1,143 @@
+/* --- 로비 섹션 스타일 수정 --- */
+#lobby-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px; /* 간격 살짝 축소 */
+    padding: 20px 0;
+}
+
+.lobby-purse {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.2rem; /* 크기 축소 */
+    color: var(--deep-rose);
+    border-bottom: 1px solid var(--soft-pink);
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+}
+
+.lobby-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* 버튼 사이 간격 축소 */
+    width: 80%; /* 로비 버튼 영역 너비 제한으로 더 작게 보임 */
+}
+
+.menu-btn {
+    width: 100%;
+    /* 우아한 글씨체 및 크기 축소 */
+    font-family: 'Cormorant Garamond', serif !important;
+    font-style: italic;
+    font-size: 0.9rem !important; 
+    padding: 10px !important; /* 전체적인 높이 축소 */
+    
+    border-radius: 20px !important; /* 조금 더 둥글고 정갈하게 */
+    box-shadow: 0 2px 8px rgba(216, 167, 177, 0.1) !important;
+    letter-spacing: 0.5px;
+}
+
+/* --- 초기 화면 버튼 스타일 (기존 유지) --- */
+#login-btn {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 0.95rem;
+    padding: 8px 20px;
+    letter-spacing: 1px;
+    margin-top: 20px;
+}
+
+/* --- 이하 기존 스타일 유지 및 요청 사항 수정 --- */
+:root {
+    --soft-pink: #fce4ec;
+    --rose-gold: #d8a7b1;
+    --ivory: #fffdf9;
+    --deep-rose: #8e5d67;
+}
+
+body, html {
+    margin: 0; padding: 0;
+    min-height: 100vh;
+    font-family: 'Cormorant Garamond', serif;
+}
+
+body {
+    background-image: linear-gradient(rgba(255, 253, 249, 0.7), rgba(255, 253, 249, 0.7)), url('bg.jfif');
+    background-size: cover; background-position: center; background-attachment: fixed;
+    display: flex; justify-content: center; align-items: flex-start;
+    padding: 20px 0;
+}
+
+#game-outer-frame {
+    width: 95%; max-width: 480px;
+    margin: auto;
+    background: rgba(255, 255, 255, 0.85);
+    padding: 25px; border-radius: 40px; border: 1px solid var(--soft-pink);
+    box-sizing: border-box; backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+/* 초기 화면 버튼 스타일 수정 */
+#login-btn {
+    font-family: 'Cormorant Garamond', serif; /* 우아한 글씨체 */
+    font-style: italic;
+    font-size: 0.95rem; /* 크기 축소 */
+    padding: 8px 20px; /* 크기 축소 */
+    letter-spacing: 1px;
+    margin-top: 20px;
+}
+
+.dealer-area { margin-bottom: 40px; }
+.player-area { margin-top: 30px; }
+
+.card-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 150px;
+    flex-wrap: nowrap;
+}
+
+.card-container {
+    perspective: 1000px;
+    position: relative;
+    transition: transform 0.3s ease;
+}
+
+.card-inner {
+    position: relative; width: 85px; height: 125px;
+    transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-style: preserve-3d;
+}
+.card-inner.flipped { transform: rotateY(180deg); }
+
+.card-front, .card-back {
+    position: absolute; width: 100%; height: 100%;
+    backface-visibility: hidden; border-radius: 10px;
+    border: 1px solid var(--soft-pink);
+}
+
+.card-front { background: white; transform: rotateY(180deg); overflow: hidden; }
+.card-back { background: var(--rose-gold); background-image: radial-gradient(var(--soft-pink) 20%, transparent 20%); background-size: 8px 8px; }
+
+.symbols-grid {
+    position: absolute; top: 25px; left: 15px; right: 15px; bottom: 25px;
+    display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(5, 1fr);
+    align-items: center; justify-items: center;
+}
+.symbol { font-size: 0.6rem; }
+.face-center { grid-area: 1/1/6/4; font-size: 2rem; display: flex; align-items: center; justify-content: center; }
+
+.corner-wrapper { position: absolute; padding: 4px; line-height: 1; }
+.top-left { top: 0; left: 0; }
+.bottom-right { bottom: 0; right: 0; transform: rotate(180deg); }
+.card-rank { font-size: 0.9rem; font-weight: bold; }
+.card-suit-small { font-size: 0.65rem; }
+
+.main-title { font-family: 'Pinyon Script', cursive; font-size: 3rem; color: var(--deep-rose); text-align: center; margin: 0; }
+.score-text { text-align: center; color: var(--deep-rose); font-weight: 600; margin: 5px 0; }
+
+.coquette-btn {
+    background: var(--ivory); border: 1px solid var(--rose-gold); color: var(--deep-rose);
+    padding: 10px 22px; border-radius: 25px; cursor: pointer; transition: 0.3s;
+}
+.hidden { display: none; }

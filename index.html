@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rose & Ivory Blackjack</title>
+    <link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300&family=Great+Vibes&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-outer-frame">
+        <div id="game-container">
+            <header>
+                <h1 class="main-title">Belle Epoque</h1>
+            </header>
+            
+            <div id="auth-section">
+                <button id="login-btn" class="coquette-btn">Enter the Garden</button>
+            </div>
+
+            <div id="lobby-section" class="hidden">
+                <div class="lobby-purse">
+                    <span class="label">My Purse:</span>
+                    <span id="lobby-balance" class="value">0</span>
+                </div>
+                <div class="lobby-menu">
+                    <button id="start-game-btn" class="coquette-btn menu-btn">Begin Blackjack</button>
+                    <button id="daily-reward-btn" class="coquette-btn menu-btn">Daily Gift (1,000)</button>
+                    <button id="exchange-btn" class="coquette-btn menu-btn">Exchange Shop</button>
+                </div>
+            </div>
+
+            <div id="board" class="hidden">
+                <button id="back-to-lobby" class="coquette-btn small" style="margin-bottom: 10px;">← Back to Lobby</button>
+                
+                <div class="status-bar">
+                    <div class="info-box">
+                        <span class="label">My Purse</span>
+                        <span id="balance" class="value">0</span>
+                    </div>
+                    <div class="info-box">
+                        <span class="label">Offering</span>
+                        <span id="current-bet-display" class="value">0</span>
+                    </div>
+                </div>
+
+                <div class="table-area">
+                    <div class="dealer-area">
+                        <h3 class="role-title">The Grand Dame</h3>
+                        <div id="dealer-cards" class="card-row"></div>
+                        <p id="dealer-score" class="score-text"></p>
+                    </div>
+
+                    <div id="message" class="shabby-msg">Shall we draw a card, darling?</div>
+
+                    <div class="player-area">
+                        <div id="player-cards" class="card-row"></div>
+                        <p id="player-score" class="score-text"></p>
+                        <h3 class="role-title">My Dear Soul</h3>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <div class="bet-controls">
+                        <button onclick="adjustBet(10)" class="coquette-btn small">+10</button>
+                        <button onclick="adjustBet(50)" class="coquette-btn small">+50</button>
+                        <button id="deal-btn" class="coquette-btn main">Begin Game</button>
+                    </div>
+                    <div class="action-controls hidden" id="action-btns">
+                        <button id="hit-btn" class="coquette-btn">Hit</button>
+                        <button id="stay-btn" class="coquette-btn">Stay</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="script.js"></script>
+</body>
+</html>
