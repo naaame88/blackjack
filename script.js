@@ -215,13 +215,18 @@ dealBtn.onclick = async () => {
 };
 
 document.getElementById('hit-btn').onclick = async () => {
+    // 게임이 이미 끝났다면 아무것도 하지 않도록 차단
+    if (isGameOver) return; 
+
     const nextCard = deck.pop();
     playerHand.push(nextCard);
     document.getElementById('player-cards').appendChild(createCardElement(nextCard));
     reorderCards('player-cards');
     updateUI();
+    
     if (calculateScore(playerHand) > 21) endGame('lose');
 };
+
 
 document.getElementById('stay-btn').onclick = dealerTurn;
 
