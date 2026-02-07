@@ -571,7 +571,9 @@ function loadRankings() {
 // 카드 엘리먼트 생성
 function createCardElement(card, isHidden = false) {
     const container = document.createElement('div');
-    container.className = 'card-container';
+    // 중요: 'card-container'가 아니라 'card'여야 CSS의 크기와 위치가 적용됩니다.
+    container.className = 'card'; 
+    
     const inner = document.createElement('div');
     inner.className = 'card-inner';
     if (isHidden) container.id = 'dealer-hidden-card';
@@ -611,8 +613,11 @@ function createCardElement(card, isHidden = false) {
     inner.appendChild(back);
     container.appendChild(inner);
 
+    // 약간의 지연을 주어 애니메이션이 확실히 보이게 합니다.
     if (!isHidden) {
-        setTimeout(() => inner.classList.add('flipped'), 100);
+        setTimeout(() => {
+            inner.classList.add('flipped');
+        }, 50);
     }
     return container;
 }
