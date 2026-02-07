@@ -16,15 +16,14 @@ body {
     background-image: linear-gradient(rgba(255, 253, 249, 0.7), rgba(255, 253, 249, 0.7)), url('bg.jfif');
     background-size: cover; background-position: center; background-attachment: fixed;
     display: flex; justify-content: center; align-items: flex-start;
-    padding: 10px 0; /* 상하 여백 축소로 스크롤 방지 */
+    padding: 10px 0;
 }
 
 #game-outer-frame {
     width: 95%; max-width: 500px;
     margin: auto;
     background: rgba(255, 255, 255, 0.85);
-    padding: 15px; /* 전체 패딩 축소 */
-    border-radius: 40px; border: 1px solid var(--soft-pink);
+    padding: 15px; border-radius: 40px; border: 1px solid var(--soft-pink);
     box-sizing: border-box; backdrop-filter: blur(10px);
     box-shadow: 0 10px 30px rgba(0,0,0,0.05);
 }
@@ -57,7 +56,7 @@ body {
 .table-area {
     background: rgba(142, 93, 103, 0.05);
     border-radius: 30px; 
-    padding: 15px 20px 5px 20px; /* 아래쪽 패딩 대폭 축소 */
+    padding: 15px 20px 5px 20px;
     margin: 15px 0 5px 0; 
     min-height: auto; display: flex; flex-direction: column;
 }
@@ -67,19 +66,19 @@ body {
     text-align: center; margin: 10px 0; min-height: 24px;
 }
 
-/* --- 딜러 및 싱글 플레이 영역 (여백 최적화) --- */
+/* --- 딜러 및 싱글 플레이 영역 --- */
 .dealer-area, .player-area {
     text-align: center; flex: 1;
 }
 
 .player-area {
-    padding: 5px 10px 0 10px; /* 핑크색 칸 내부 하단 여백 제거 */
-    margin-bottom: 0px;       /* 하단 바깥 여백 제거 */
+    padding: 5px 10px 0 10px;
+    margin-bottom: 0px;
 }
 
 .role-title {
     font-family: 'Great Vibes', cursive;
-    color: var(--rose-gold); font-size: 1.6rem; margin: 0; /* 마진 제거 */
+    color: var(--rose-gold); font-size: 1.6rem; margin: 0;
 }
 
 /* --- 멀티플레이어 컨테이너 --- */
@@ -108,32 +107,25 @@ body {
     transform: scale(1.05);
 }
 
-.player-slot .card-row {
-    transform: scale(0.6);
-    margin: -25px 0; 
-}
-
-/* --- 카드 디자인 (뒤집기 및 하얀 잔상 수정) --- */
+/* --- 카드 디자인 --- */
 .card-row {
     display: flex;
     justify-content: center;
-    min-height: 135px; /* 높이 약간 축소 */
+    min-height: 135px;
     position: relative;
     width: 100%;
     margin: 10px 0;
 }
 
 .card {
-    width: 80px;
-    height: 120px;
+    width: 80px; height: 120px;
     position: absolute;
-    background: transparent !important; /* 배경 투명화로 하얀 네모 방지 */
+    background: transparent !important;
     perspective: 1000px;
 }
 
 .card-inner {
-    width: 100%;
-    height: 100%;
+    width: 100%; height: 100%;
     position: relative;
     transform-style: preserve-3d;
     transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
@@ -143,18 +135,13 @@ body {
 
 .card-front, .card-back {
     position: absolute; width: 100%; height: 100%;
-    backface-visibility: hidden; /* 뒤집힌 면 숨김 처리 */
+    backface-visibility: hidden;
     border-radius: 8px;
     border: 1px solid var(--soft-pink);
     box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
 }
 
-.card-front { 
-    background: white; 
-    transform: rotateY(180deg); 
-    overflow: hidden; 
-}
-
+.card-front { background: white; transform: rotateY(180deg); overflow: hidden; }
 .card-back { 
     background: var(--rose-gold); 
     background-image: radial-gradient(var(--soft-pink) 20%, transparent 20%); 
@@ -162,18 +149,44 @@ body {
     transform: rotateY(0deg);
 }
 
-/* --- 랭킹 모달 (NaN 수정 및 가독성 강화) --- */
+/* --- 중요: 랭킹 및 닉네임 팝업(모달) 수정 --- */
+/* 전체 화면을 덮는 어두운 배경 */
+.modal {
+    position: fixed; 
+    top: 0; left: 0; 
+    width: 100vw; height: 100vh;
+    background: rgba(142, 93, 103, 0.4); /* 어두운 오버레이 */
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    z-index: 9999; /* 최상단으로 올림 */
+    backdrop-filter: blur(5px);
+}
+
+/* 실제 팝업 박스 */
+.modal-content {
+    background: var(--ivory); 
+    padding: 30px; 
+    border-radius: 30px;
+    text-align: center; 
+    width: 85%; 
+    max-width: 350px; 
+    border: 1px solid var(--soft-pink);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+    position: relative;
+}
+
+/* 랭킹 리스트 스타일 */
 #rank-list {
-    list-style: none; padding: 0; margin: 15px 0;
+    list-style: none; padding: 0; margin: 20px 0;
+    text-align: left;
 }
 
 #rank-list li {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 8px 5px; border-bottom: 1px dashed var(--soft-pink);
-    font-size: 0.95rem; color: var(--deep-rose);
+    display: flex; justify-content: space-between;
+    padding: 10px 5px; border-bottom: 1px dashed var(--soft-pink);
+    font-size: 1rem; color: var(--deep-rose);
 }
-
-#rank-list li:last-child { border-bottom: none; }
 
 /* --- 점수 및 상태바 --- */
 .score-text { font-weight: bold; color: var(--deep-rose); font-size: 0.9rem; margin: 2px 0; }
@@ -205,8 +218,3 @@ body {
 .top-left { top: 0; left: 0; }
 .bottom-right { bottom: 0; right: 0; transform: rotate(180deg); }
 .card-rank { font-size: 0.8rem; font-weight: bold; }
-
-.modal-content {
-    background: var(--ivory); padding: 25px; border-radius: 30px;
-    text-align: center; width: 85%; max-width: 320px; border: 1px solid var(--soft-pink);
-}
