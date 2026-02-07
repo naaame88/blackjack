@@ -23,6 +23,7 @@ let currentBet = 0;
 let lastClaimDate = "";
 let deck = [], playerHand = [], dealerHand = [];
 let isGameOver = true;
+let currentRoomId = null;
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -46,6 +47,136 @@ const displayNickname = document.getElementById('display-nickname');
 const editNicknameBtn = document.getElementById('edit-nickname-btn');
 const saveNicknameBtn = document.getElementById('save-nickname');
 const closeNicknameBtn = document.getElementById('close-nickname');
+
+const multiGameBtn = document.getElementById('multi-game-btn');
+const multiLobbyModal = document.getElementById('multi-lobby-modal');
+const playerListMulti = document.getElementById('player-list-multi');
+
+// 1. 멀티플레이어 버튼 클릭 시
+multiGameBtn.onclick = async () => {
+    multiLobbyModal.classList.remove('hidden');
+    joinOrCreateRoom();
+};
+
+// 2. 방 참가 또는 생성 로직
+async function joinOrCreateRoom() {
+    const roomsRef = collection(db, "rooms");
+    // 대기 중(waiting)이고 3명 미만인 방 찾기
+    const q = query(roomsRef, where("status", "==", "waiting"), limit(1));
+    const querySnapshot = await getDocs(q);
+
+    let roomId;
+    if (querySnapshot.empty) {
+        // 새 방 생성
+        const newRoom = await addDoc(roomsRef, {
+            status: "waiting",
+            players: [{ uid: user.uid, name: displayNickname.innerText, isReady: false }],
+            createdAt: serverTimestamp()
+        });
+        roomId = newRoom.id;
+    } else {
+        // 기존 방 입장
+        roomId = querySnapshot.docs[0].id;
+        await updateDoc(doc(db, "rooms", roomId), {
+            players: arrayUnion({ uid: user.uid, name: displayNickname.innerText, isReady: false })
+        });
+    }
+    currentRoomId = roomId;
+    listenToRoom(roomId);
+}
+
+// rooms/{roomId} 문서를 실시간 감시
+function listenToGame(roomId) {
+    onSnapshot(doc(db, "rooms", roomId), (snap) => {
+        const data = snap.data();
+        if (!data) return;
+
+        // 1. 모든 플레이어의 카드와 점수를 화면에 렌더링
+        renderMultiTable(data.players, data.dealerHand);
+
+        // 2. 현재 내 차례인지 확인 (turnIndex 활용)
+        const currentPlayer = data.players[data.turnIndex];
+        if (currentPlayer.uid === user.uid && data.status === "playing") {
+            // 내 차례면 버튼 활성화
+            actionBtns.classList.remove('hidden');
+            messageEl.innerText = "It's your turn!";
+        } else {
+            // 남의 차례면 버튼 숨김
+            actionBtns.classList.add('hidden');
+            messageEl.innerText = `${currentPlayer.name}'s turn...`;
+        }
+
+        // 3. 딜러 차례인지 확인 (모든 플레이어 완료 시)
+        if (data.turnIndex === data.players.length) {
+            if (user.uid === data.players[0].uid) { // 방장(첫 번째 플레이어)이 AI 계산 수행
+                runDealerAI(roomId, data);
+            }
+        }
+    });
+}
+
+// Hit 버튼 클릭 시
+async function multiHit() {
+    const roomRef = doc(db, "rooms", currentRoomId);
+    const snap = await getDoc(roomRef);
+    const data = snap.data();
+    
+    let updatedPlayers = [...data.players];
+    const myIndex = data.turnIndex;
+    const nextCard = data.deck.pop(); // 공용 덱에서 한 장 추출
+    
+    updatedPlayers[myIndex].hand.push(nextCard);
+    
+    // 점수 계산 후 버스트 체크
+    if (calculateScore(updatedPlayers[myIndex].hand) > 21) {
+        updatedPlayers[myIndex].status = "bust";
+        // 버스트되면 자동으로 다음 사람에게 턴을 넘김
+        await updateDoc(roomRef, {
+            players: updatedPlayers,
+            deck: data.deck,
+            turnIndex: data.turnIndex + 1
+        });
+    } else {
+        // 버스트가 아니면 카드만 추가
+        await updateDoc(roomRef, {
+            players: updatedPlayers,
+            deck: data.deck
+        });
+    }
+}
+
+// Stay 버튼 클릭 시
+async function multiStay() {
+    const roomRef = doc(db, "rooms", currentRoomId);
+    const snap = await getDoc(roomRef);
+    const data = snap.data();
+    
+    let updatedPlayers = [...data.players];
+    updatedPlayers[data.turnIndex].status = "stay";
+    
+    // 다음 사람에게 턴 넘기기
+    await updateDoc(roomRef, {
+        players: updatedPlayers,
+        turnIndex: data.turnIndex + 1
+    });
+}
+
+async function runDealerAI(roomId, data) {
+    let dHand = [...data.dealerHand];
+    let dDeck = [...data.deck];
+    
+    // 딜러 룰: 18점 미만이면 계속 뽑기
+    while (calculateScore(dHand) < 18) {
+        dHand.push(dDeck.pop());
+    }
+    
+    // 최종 상태 업데이트 및 게임 종료
+    await updateDoc(doc(db, "rooms", roomId), {
+        dealerHand: dHand,
+        deck: dDeck,
+        status: "finished"
+    });
+}
 
 // 로그인 처리
 loginBtn.onclick = async () => {
@@ -175,8 +306,8 @@ function calculateScore(hand) {
 window.adjustBet = (amount) => {
     if (!isGameOver) return;
     if (balance >= amount) {
-        balance -= amount;
-        currentBet += amount;
+        balance = balance - amount;
+        currentBet = currentBet + amount;
         updateUI();
     }
 };
@@ -226,6 +357,18 @@ document.getElementById('hit-btn').onclick = async () => {
     if (calculateScore(playerHand) > 21) {
         await sleep(500);
         endGame('lose');
+    }
+};
+
+document.getElementById('all-in-btn').onclick = () => {
+    if (!isGameOver) return; // 게임 중에는 배팅 불가
+    
+    if (balance > 0) {
+        currentBet += balance; // 전재산을 배팅액에 추가
+        balance = 0;           // 내 잔고는 0원
+        updateUI();
+    } else {
+        alert("You have no gold for an All-in bet.");
     }
 };
 

@@ -254,3 +254,14 @@ body {
 }
 
 .hidden { display: none !important; }
+
+.bet-controls {
+    display: flex;
+    justify-content: center;
+    gap: 5px; /* 버튼 간격을 좁혀서 한 줄에 들어오게 조절 */
+    flex-wrap: wrap; /* 화면이 작으면 다음 줄로 넘어가게 설정 */
+}
+
+.bet-controls .coquette-btn.small {
+    padding: 4px 8px; /* 버튼 안쪽 여백을 조금 줄여서 크기 조절 */
+    font-size: 0.75rem;}
