@@ -128,8 +128,8 @@ function updateUI() {
 
 // 1. adjustBet 함수 보강 (약 100라인 근처)
 window.adjustBet = async (amount) => {
-    // 로비 상태이거나 싱글 게임 종료 상태일 때만 작동
-    if (!isGameOver) return; 
+    // 싱글 게임 진행 중일 때만 막고, 나머지는 허용
+    if (!isGameOver && !isMultiplayer) return; 
     
     const numericAmount = Number(amount);
     if (balance >= numericAmount) {
@@ -137,11 +137,11 @@ window.adjustBet = async (amount) => {
         
         if (isMultiplayer) {
             myMultiBet += numericAmount;
-            // 로비에 있는 금액 표시 요소 업데이트
+            // HTML의 multi-bet-display 요소를 실시간으로 업데이트
             const mDisplay = document.getElementById('multi-bet-display');
             if (mDisplay) mDisplay.innerText = myMultiBet.toLocaleString() + "G";
             
-            await syncMultiBet(); // DB에 내 베팅 정보 전송
+            await syncMultiBet(); // Firebase DB에 내 베팅 전송
         } else {
             currentBet += numericAmount;
         }
@@ -154,10 +154,16 @@ window.adjustBet = async (amount) => {
 // 2. 멀티플레이어 베팅 초기화 함수 추가
 window.resetMultiBet = async () => {
     if (!isMultiplayer) return;
-    balance += myMultiBet; // 베팅했던 돈을 다시 잔액으로
+    
+    // 이미 베팅한 금액(myMultiBet)을 다시 내 잔액(balance)으로 복구
+    balance += myMultiBet; 
     myMultiBet = 0;
+    
+    // UI 업데이트
     const display = document.getElementById('multi-bet-display');
-    if(display) display.innerText = "0G";
+    if (display) display.innerText = "0G";
+    
+    // DB 동기화 (방장 화면에서도 내 베팅이 0으로 보이게 함)
     await syncMultiBet();
     updateUI();
 };
@@ -228,7 +234,15 @@ async function runSingleDealerAI() {
 // --- 4. 멀티플레이어 로직 (Firebase) ---
 document.getElementById('multi-game-btn').onclick = () => {
     myMultiBet = 0;
+    isMultiplayer = true; // 멀티플레이 모드임을 명시
+    isGameOver = true;    // 로비에서는 게임 중이 아니므로 베팅이 가능하게 true로 설정
+    
     multiLobbyModal.classList.remove('hidden');
+    
+    // 로비 베팅 표시 초기화
+    const display = document.getElementById('multi-bet-display');
+    if (display) display.innerText = "0G";
+    
     joinMultiRoom();
 };
 
