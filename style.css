@@ -25,167 +25,123 @@ body {
     background: rgba(255, 255, 255, 0.85);
     padding: 15px; border-radius: 40px; border: 1px solid var(--soft-pink);
     box-sizing: border-box; backdrop-filter: blur(10px);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    box-shadow: 0 10px 30px rgba(216, 167, 177, 0.3);
 }
 
+/* --- 타이틀 및 텍스트 --- */
 .main-title {
     font-family: 'Pinyon Script', cursive;
-    font-size: 3.5rem; color: var(--deep-rose);
-    margin: 0; text-align: center;
+    color: var(--deep-rose);
+    text-align: center; font-size: 3.5rem; margin: 10px 0;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.05);
+}
+
+.role-title {
+    font-family: 'Great Vibes', cursive;
+    color: var(--rose-gold);
+    font-size: 1.5rem; margin-bottom: 5px;
 }
 
 /* --- 버튼 스타일 --- */
 .coquette-btn {
     background: var(--ivory);
-    border: 1px solid var(--rose-gold);
     color: var(--deep-rose);
-    padding: 10px 20px; border-radius: 20px;
-    cursor: pointer; transition: all 0.3s;
-    font-family: 'Cormorant Garamond', serif; font-weight: 600;
+    border: 1.5px solid var(--rose-gold);
+    padding: 10px 20px; border-radius: 25px;
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 600; cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(216, 167, 177, 0.2);
 }
 
-.coquette-btn:hover { background: var(--soft-pink); transform: translateY(-2px); }
-.menu-btn { width: 100%; margin: 8px 0; font-size: 1.1rem; }
+.coquette-btn:hover {
+    background: var(--soft-pink);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(216, 167, 177, 0.4);
+}
+
+.coquette-btn.main { background: var(--rose-gold); color: white; border: none; }
 .coquette-btn.small { padding: 5px 12px; font-size: 0.8rem; }
-.coquette-btn.main { background: var(--rose-gold); color: white; padding: 12px 30px; font-size: 1.2rem; }
 
-/* --- 레이아웃 구분 --- */
-.hidden { display: none !important; }
-
-/* --- 테이블 및 메시지 --- */
-.table-area {
-    background: rgba(142, 93, 103, 0.05);
-    border-radius: 30px; 
-    padding: 15px 20px 5px 20px;
-    margin: 15px 0 5px 0; 
-    min-height: auto; display: flex; flex-direction: column;
+/* --- 로비 세션 --- */
+.lobby-menu { display: flex; flex-direction: column; gap: 8px; }
+.lobby-purse {
+    background: white; padding: 10px; border-radius: 20px;
+    margin-bottom: 15px; border: 1px solid var(--soft-pink);
+    display: flex; justify-content: center; gap: 10px;
 }
 
-.shabby-msg {
-    font-style: italic; color: var(--deep-rose);
-    text-align: center; margin: 10px 0; min-height: 24px;
+/* --- [수정] 모달 시스템 (중앙 정렬 보강) --- */
+.modal {
+    position: fixed; /* absolute에서 fixed로 변경하여 화면 중앙 고정 */
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(142, 93, 103, 0.4);
+    display: flex; justify-content: center; align-items: center; /* 자식 요소 정중앙 배치 */
+    z-index: 1000;
 }
 
-/* --- 딜러 및 싱글 플레이 영역 --- */
-.dealer-area, .player-area {
-    text-align: center; flex: 1;
-}
-
-.player-area {
-    padding: 5px 10px 0 10px;
-    margin-bottom: 0px;
-}
-
-.role-title {
-    font-family: 'Great Vibes', cursive;
-    color: var(--rose-gold); font-size: 1.6rem; margin: 0;
-}
-
-/* --- 멀티플레이어 컨테이너 --- */
-.multi-container {
-    display: flex;
-    justify-content: space-around;
-    align-items: flex-start;
-    gap: 8px;
-    margin-top: 5px;
-}
-
-.player-slot {
-    flex: 1;
-    display: flex; flex-direction: column; align-items: center;
-    padding: 8px 5px; border-radius: 15px;
-    background: rgba(255, 255, 255, 0.4);
-    border: 2px solid transparent;
-    transition: all 0.4s ease;
-    min-width: 0;
-}
-
-.player-slot.active-turn {
-    border-color: var(--rose-gold);
-    background: rgba(216, 167, 177, 0.15);
-    box-shadow: 0 0 15px var(--soft-pink);
-    transform: scale(1.05);
-}
-
-/* --- 카드 디자인 --- */
-.card-row {
-    display: flex;
-    justify-content: center;
-    min-height: 135px;
+.modal-content {
+    background: var(--ivory);
+    padding: 25px; border-radius: 35px;
+    width: 85%; max-width: 320px;
+    border: 1px solid var(--soft-pink);
+    box-shadow: 0 20px 50px rgba(142, 93, 103, 0.2);
+    text-align: center;
     position: relative;
-    width: 100%;
-    margin: 10px 0;
 }
 
+/* --- 랭킹 리스트 스타일 --- */
+#rank-list { margin: 15px 0; padding: 0; list-style: none; }
+#rank-list li {
+    display: flex; justify-content: space-between;
+    padding: 10px 5px; border-bottom: 1px dashed var(--soft-pink);
+    font-size: 1rem; color: var(--deep-rose);
+}
+
+/* --- 게임 보드 영역 --- */
+.table-area {
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 30px; padding: 15px;
+    border: 1px solid var(--soft-pink);
+    min-height: 250px; position: relative;
+}
+
+.card-row {
+    display: flex; justify-content: center; height: 110px;
+    position: relative; margin: 10px 0;
+}
+
+/* --- 카드 스타일 --- */
 .card {
-    width: 80px; height: 120px;
-    position: absolute;
-    background: transparent !important;
+    width: 80px; height: 110px;
     perspective: 1000px;
 }
 
 .card-inner {
     width: 100%; height: 100%;
-    position: relative;
+    transition: transform 0.6s;
     transform-style: preserve-3d;
-    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
 }
 
 .card-inner.flipped { transform: rotateY(180deg); }
 
 .card-front, .card-back {
     position: absolute; width: 100%; height: 100%;
-    backface-visibility: hidden;
-    border-radius: 8px;
-    border: 1px solid var(--soft-pink);
-    box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+    backface-visibility: hidden; border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
-.card-front { background: white; transform: rotateY(180deg); overflow: hidden; }
-.card-back { 
-    background: var(--rose-gold); 
-    background-image: radial-gradient(var(--soft-pink) 20%, transparent 20%); 
-    background-size: 6px 6px; 
-    transform: rotateY(0deg);
+.card-front {
+    background: white; transform: rotateY(180deg);
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
 }
 
-/* --- 중요: 랭킹 및 닉네임 팝업(모달) 수정 --- */
-/* 전체 화면을 덮는 어두운 배경 */
-.modal {
-    position: fixed; 
-    top: 0; left: 0; 
-    width: 100vw; height: 100vh;
-    background: rgba(142, 93, 103, 0.4); /* 어두운 오버레이 */
-    display: flex; 
-    justify-content: center; 
-    align-items: center; 
-    z-index: 9999; /* 최상단으로 올림 */
-    backdrop-filter: blur(5px);
-}
-
-/* 실제 팝업 박스 */
-.modal-content {
-    background: var(--ivory); 
-    padding: 30px; 
-    border-radius: 30px;
-    text-align: center; 
-    width: 85%; 
-    max-width: 350px; 
-    border: 1px solid var(--soft-pink);
-    box-shadow: 0 15px 40px rgba(0,0,0,0.2);
-    position: relative;
-}
-
-/* 랭킹 리스트 스타일 */
-#rank-list {
-    list-style: none; padding: 0; margin: 20px 0;
-    text-align: left;
-}
-
-#rank-list li {
-    display: flex; justify-content: space-between;
-    padding: 10px 5px; border-bottom: 1px dashed var(--soft-pink);
-    font-size: 1rem; color: var(--deep-rose);
+.card-back {
+    background: var(--rose-gold);
+    background-image: radial-gradient(var(--soft-pink) 1px, transparent 1px);
+    background-size: 10px 10px;
 }
 
 /* --- 점수 및 상태바 --- */
@@ -206,6 +162,34 @@ body {
     display: flex; justify-content: center; gap: 6px; flex-wrap: wrap;
 }
 
+/* --- 유틸리티 --- */
+.hidden { display: none !important; }
+
+/* --- [추가] 멀티플레이어 레이아웃 보강 --- */
+.multi-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.player-slot {
+    padding: 10px; border-radius: 15px;
+    border: 1.5px solid transparent;
+    transition: all 0.3s;
+}
+
+.player-slot.active-turn {
+    border-color: var(--deep-rose);
+    background: var(--soft-pink);
+}
+
+.status-tag {
+    font-size: 0.6rem; padding: 2px 6px;
+    border-radius: 10px; background: var(--rose-gold);
+    color: white; display: inline-block;
+}
+
 /* 카드 내부 문양 스타일 */
 .symbols-grid {
     position: absolute; top: 15px; left: 5px; right: 5px; bottom: 15px;
@@ -213,8 +197,3 @@ body {
     align-items: center; justify-items: center; pointer-events: none;
 }
 .symbol { font-size: 0.5rem; }
-.face-center { grid-area: 1/1/6/4; font-size: 1.8rem; display: flex; align-items: center; justify-content: center; }
-.corner-wrapper { position: absolute; padding: 3px; line-height: 1; pointer-events: none;}
-.top-left { top: 0; left: 0; }
-.bottom-right { bottom: 0; right: 0; transform: rotate(180deg); }
-.card-rank { font-size: 0.8rem; font-weight: bold; }

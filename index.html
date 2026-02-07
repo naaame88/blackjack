@@ -41,7 +41,8 @@
                     <h2 class="main-title" style="font-size: 1.5rem;">Multiplayer Lobby</h2>
                     <p id="room-status-msg">Searching for a table...</p>
                     <div id="player-list-multi" style="margin: 20px 0; text-align: left;"></div>
-                    <div style="display: flex; gap: 10px; justify-content: center;">
+                    <div style="display: flex; flex-direction: column; gap: 10px; justify-content: center;">
+                        <button id="multi-start-btn" class="coquette-btn main hidden">Start Game</button>
                         <button id="leave-multi" class="coquette-btn small">Leave</button>
                     </div>
                 </div>
@@ -50,7 +51,7 @@
             <div id="rank-modal" class="modal hidden">
                 <div class="modal-content">
                     <h2 class="main-title" style="font-size: 2rem;">Grand Hall of Fame</h2>
-                    <ul id="rank-list"></ul>
+                    <ul id="rank-list" style="list-style: none; padding: 0;"></ul>
                     <button id="close-rank" class="coquette-btn small">Return</button>
                 </div>
             </div>
@@ -89,16 +90,12 @@
                 
                     <div id="message" class="shabby-msg">Place your bet to start.</div>
                 
-                    <div id="multi-player-container" class="multi-container"></div>
+                    <div id="multi-player-container" class="multi-container hidden"></div>
 
-                    <div class="table-area">
-                        <div id="single-player-area" class="player-area">
-                            <div id="player-cards" class="card-row"></div>
-                            <p id="player-score" class="score-text"></p>
-                            <h3 class="role-title" style="font-size: 1.2rem;">You</h3>
-                        </div>
-                    
-                        <div id="multi-player-container" class="multi-container hidden"></div>
+                    <div id="single-player-area" class="player-area">
+                        <div id="player-cards" class="card-row"></div>
+                        <p id="player-score" class="score-text"></p>
+                        <h3 class="role-title" style="font-size: 1.2rem;">You</h3>
                     </div>
                 </div>
 

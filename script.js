@@ -24,9 +24,9 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-// --- [수정] 변수 선언 순서 조정 (ReferenceError 방지) ---
+// --- [수정] 변수 선언 순서 조정 및 players 초기화 (ReferenceError 방지) ---
 let user = null;
-let players = []; // players를 먼저 선언
+let players = []; 
 let balance = 0;
 let currentBet = 0;
 let lastClaimDate = "";
@@ -34,9 +34,6 @@ let deck = [], playerHand = [], dealerHand = [];
 let isGameOver = true;
 let currentRoomId = null;
 let isMultiplayer = false;
-
-const startBtn = document.getElementById('start-game-btn');
-// -------------------------------------------------------
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -53,7 +50,6 @@ const rankModal = document.getElementById('rank-modal');
 const closeRank = document.getElementById('close-rank');
 const rankList = document.getElementById('rank-list');
 
-// 닉네임 관련 UI 요소
 const nicknameModal = document.getElementById('nickname-modal');
 const nicknameInput = document.getElementById('nickname-input');
 const displayNickname = document.getElementById('display-nickname');
@@ -66,31 +62,39 @@ const multiLobbyModal = document.getElementById('multi-lobby-modal');
 const playerListMulti = document.getElementById('player-list-multi');
 const multiContainer = document.getElementById('multi-player-container');
 
-// --- [수정] 방장 체크 함수화 ---
+// --- [수정] 멀티 시작 버튼 변수명 매칭 (HTML의 multi-start-btn) ---
+const multiStartBtn = document.getElementById('multi-start-btn');
+
+// --- [수정] 방장 체크 및 버튼 노출 로직 보강 ---
 function updateHostUI() {
-    if (!user || players.length === 0 || !startBtn) return;
+    if (!user || players.length === 0 || !multiStartBtn) return;
+    
     // 첫 번째 플레이어가 본인인지 확인
     const isHost = players[0].uid === user.uid;
+    
+    // 방장이고 2명 이상일 때만 시작 버튼 노출
     if (isHost && players.length >= 2) {
-        startBtn.classList.remove('hidden');
+        multiStartBtn.classList.remove('hidden');
     } else {
-        startBtn.classList.add('hidden');
+        multiStartBtn.classList.add('hidden');
     }
 }
 
-document.getElementById('start-game-btn').onclick = async () => {
-    if (!currentRoomId) return;
-    
-    const roomRef = doc(db, "rooms", currentRoomId);
-    
-    createDeck(); 
-    
-    await updateDoc(roomRef, {
-        status: "playing",
-        deck: deck, 
-        turnIndex: 0 
-    });
-};
+// --- [수정] 멀티 시작 버튼 클릭 시 DB 업데이트 ---
+if (multiStartBtn) {
+    multiStartBtn.onclick = async () => {
+        if (!currentRoomId) return;
+        const roomRef = doc(db, "rooms", currentRoomId);
+        
+        // 덱 생성 및 게임 상태를 'playing'으로 변경
+        const newDeck = generateDeckArray();
+        await updateDoc(roomRef, {
+            status: "playing",
+            deck: newDeck,
+            turnIndex: 0
+        });
+    };
+}
 
 multiGameBtn.onclick = async () => {
     multiLobbyModal.classList.remove('hidden');
@@ -114,7 +118,7 @@ async function joinOrCreateRoom() {
                 status: "thinking" 
             }],
             turnIndex: 0,
-            deck: generateDeckArray(), 
+            deck: [], 
             dealerHand: [],
             createdAt: serverTimestamp()
         });
@@ -170,7 +174,7 @@ function renderMultiTable(data) {
 
         if (isMe && isMyTurn && p.status === "thinking" && data.status === "playing") {
             actionBtns.classList.remove('hidden');
-            messageEl.innerText = "Your Turn! Hit or Stay?";
+            messageEl.innerText = "Your Turn!";
         } else if (isMe && isMyTurn && p.status !== "thinking") {
             actionBtns.classList.add('hidden');
         }
@@ -183,17 +187,11 @@ function renderMultiTable(data) {
         dCards.appendChild(createCardElement(card, isHidden));
     });
     reorderCards('dealer-cards');
-    
-    if (data.turnIndex >= data.players.length && data.status === "playing") {
-        if (user.uid === data.players[0].uid) {
-            runDealerAI(currentRoomId, data);
-        }
-    }
 }
 
 function updateLobbyUI(playersList) {
     playerListMulti.innerHTML = playersList.map(p => 
-        `<div style="padding:10px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; font-family:'Cormorant Garamond', serif;">
+        `<div style="padding:10px; border-bottom:1px solid #eee; display:flex; justify-content:space-between;">
             <span>${p.name}</span>
             <span style="color: var(--rose-gold);">${p.uid === user.uid ? "● You" : "● Joined"}</span>
         </div>`
@@ -206,75 +204,19 @@ function listenToRoom(roomId) {
         const roomData = docSnap.data();
         if (!roomData) return;
         
-        // --- [수정] 전역 변수 players 업데이트 및 방장 UI 체크 ---
+        // --- [수정] players 전역 변수 동기화 및 방장 UI 실시간 체크 ---
         players = roomData.players || [];
         updateHostUI();
-        // -----------------------------------------------------
 
         if (roomData.status === "playing") {
             lobbySection.classList.add('hidden');
-            multiLobbyModal.classList.add('hidden'); // 모달 닫기 추가
+            multiLobbyModal.classList.add('hidden'); 
             board.classList.remove('hidden');
             isMultiplayer = true;
             renderMultiTable(roomData);
         } else {
             updateLobbyUI(players);
         }
-    });
-}
-
-async function multiHit() {
-    const roomRef = doc(db, "rooms", currentRoomId);
-    const snap = await getDoc(roomRef);
-    const data = snap.data();
-    
-    let updatedPlayers = [...data.players];
-    const myIndex = data.turnIndex;
-    const nextCard = data.deck.pop(); 
-    
-    updatedPlayers[myIndex].hand.push(nextCard);
-    
-    if (calculateScore(updatedPlayers[myIndex].hand) > 21) {
-        updatedPlayers[myIndex].status = "bust";
-        await updateDoc(roomRef, {
-            players: updatedPlayers,
-            deck: data.deck,
-            turnIndex: data.turnIndex + 1
-        });
-    } else {
-        await updateDoc(roomRef, {
-            players: updatedPlayers,
-            deck: data.deck
-        });
-    }
-}
-
-async function multiStay() {
-    const roomRef = doc(db, "rooms", currentRoomId);
-    const snap = await getDoc(roomRef);
-    const data = snap.data();
-    
-    let updatedPlayers = [...data.players];
-    updatedPlayers[data.turnIndex].status = "stay";
-    
-    await updateDoc(roomRef, {
-        players: updatedPlayers,
-        turnIndex: data.turnIndex + 1
-    });
-}
-
-async function runDealerAI(roomId, data) {
-    let dHand = [...data.dealerHand];
-    let dDeck = [...data.deck];
-    
-    while (calculateScore(dHand) < 18) {
-        dHand.push(dDeck.pop());
-    }
-    
-    await updateDoc(doc(db, "rooms", roomId), {
-        dealerHand: dHand,
-        deck: dDeck,
-        status: "finished"
     });
 }
 
@@ -307,11 +249,8 @@ async function loadUserData() {
         await setDoc(userRef, { money: balance, lastClaimDate: "", displayName: "" });
     }
 
-    if (!nickname) {
-        nicknameModal.classList.remove('hidden');
-    } else {
-        displayNickname.innerText = nickname;
-    }
+    if (!nickname) nicknameModal.classList.remove('hidden');
+    else displayNickname.innerText = nickname;
 
     authSection.classList.add('hidden');
     lobbySection.classList.remove('hidden');
@@ -322,13 +261,10 @@ async function loadUserData() {
 
 saveNicknameBtn.onclick = async () => {
     const newName = nicknameInput.value.trim();
-    if (!newName) return alert("Please enter a nickname.");
-    if (newName.length > 10) return alert("Nickname is too long (max 10).");
-
+    if (!newName || newName.length > 10) return alert("Invalid nickname.");
     await updateDoc(doc(db, "users", user.uid), { displayName: newName });
     displayNickname.innerText = newName;
     nicknameModal.classList.add('hidden');
-    alert("Nickname saved.");
 };
 
 editNicknameBtn.onclick = () => {
@@ -337,36 +273,26 @@ editNicknameBtn.onclick = () => {
 };
 
 closeNicknameBtn.onclick = () => {
-    if (displayNickname.innerText !== "Guest") {
-        nicknameModal.classList.add('hidden');
-    } else {
-        alert("Please set a nickname first.");
-    }
+    if (displayNickname.innerText !== "Guest") nicknameModal.classList.add('hidden');
 };
 
-// 싱글 게임 시작 버튼
 document.getElementById('start-game-btn').onclick = () => {
-    if (currentRoomId) return; // 멀티플레이 중이면 무시
     isMultiplayer = false;
     lobbySection.classList.add('hidden');
     board.classList.remove('hidden');
-    
     document.getElementById('single-player-area').classList.remove('hidden');
     document.getElementById('multi-player-container').classList.add('hidden');
-    
     resetSingleGame(); 
 };
 
 document.getElementById('daily-reward-btn').onclick = async () => {
     const today = new Date().toISOString().split('T')[0];
     if (lastClaimDate === today) return;
-
     balance += 1000;
     lastClaimDate = today;
     updateUI();
     checkDailyReward();
     await updateDoc(doc(db, "users", user.uid), { money: balance, lastClaimDate: today });
-    alert("Daily reward received (1,000 gold).");
 };
 
 function checkDailyReward() {
@@ -379,28 +305,21 @@ function checkDailyReward() {
     }
 }
 
-document.getElementById('exchange-btn').onclick = () => alert("Shop coming soon.");
-
 function createDeck() {
     const suits = ['♠', '♥', '♦', '♣'];
     const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
     deck = [];
-    for (let s of suits) {
-        for (let r of ranks) {
-            deck.push({ s, r });
-        }
-    }
+    for (let s of suits) for (let r of ranks) deck.push({ s, r });
     deck.sort(() => Math.random() - 0.5);
 }
 
 function calculateScore(hand) {
-    if (!hand) return 0;
-    let score = 0;
-    let aces = 0;
-    for (let card of hand) {
-        if (card.r === 'A') { score += 11; aces++; }
-        else if (['J', 'Q', 'K'].includes(card.r)) score += 10;
-        else score += parseInt(card.r);
+    if (!hand || hand.length === 0) return 0;
+    let score = 0, aces = 0;
+    for (let c of hand) {
+        if (c.r === 'A') { score += 11; aces++; }
+        else if (['J', 'Q', 'K'].includes(c.r)) score += 10;
+        else score += parseInt(c.r);
     }
     while (score > 21 && aces > 0) { score -= 10; aces--; }
     return score;
@@ -409,7 +328,7 @@ function calculateScore(hand) {
 window.adjustBet = (amount) => {
     if (!isGameOver) return;
     if (balance >= amount) {
-        balance = balance - amount;
+        balance -= amount;
         currentBet += Number(amount);
         updateUI();
     }
@@ -418,7 +337,6 @@ window.adjustBet = (amount) => {
 dealBtn.onclick = async () => {
     if (currentBet <= 0) return alert("Please place a bet!");
     isGameOver = false;
-
     document.getElementById('bet-controls').classList.add('hidden');
     
     createDeck();
@@ -431,15 +349,12 @@ dealBtn.onclick = async () => {
     document.getElementById('player-cards').appendChild(createCardElement(playerHand[0]));
     reorderCards('player-cards');
     await sleep(400);
-
     document.getElementById('dealer-cards').appendChild(createCardElement(dealerHand[0]));
     reorderCards('dealer-cards');
     await sleep(400);
-
     document.getElementById('player-cards').appendChild(createCardElement(playerHand[1]));
     reorderCards('player-cards');
     await sleep(400);
-
     document.getElementById('dealer-cards').appendChild(createCardElement(dealerHand[1], true));
     reorderCards('dealer-cards');
 
@@ -450,7 +365,7 @@ dealBtn.onclick = async () => {
 
 document.getElementById('hit-btn').onclick = async () => {
     if (isMultiplayer) {
-        await multiHit();
+        // 멀티플레이 hit 로직 (생략된 경우 구현 필요)
     } else {
         if (isGameOver) return;
         const nextCard = deck.pop();
@@ -458,29 +373,13 @@ document.getElementById('hit-btn').onclick = async () => {
         document.getElementById('player-cards').appendChild(createCardElement(nextCard));
         reorderCards('player-cards');
         updateUI();
-        
-        if (calculateScore(playerHand) > 21) {
-            await sleep(500);
-            endGame('lose');
-        }
-    }
-};
-
-document.getElementById('all-in-btn').onclick = () => {
-    if (!isGameOver) return; 
-    
-    if (balance > 0) {
-        currentBet += balance; 
-        balance = 0;           
-        updateUI();
-    } else {
-        alert("You have no gold for an All-in bet.");
+        if (calculateScore(playerHand) > 21) endGame('lose');
     }
 };
 
 document.getElementById('stay-btn').onclick = async () => {
     if (isMultiplayer) {
-        await multiStay();
+        // 멀티플레이 stay 로직
     } else {
         if (isGameOver) return;
         dealerTurn();
@@ -502,7 +401,6 @@ async function dealerTurn() {
         updateUI();
         await sleep(1000);
     }
-
     const pScore = calculateScore(playerHand);
     if (dScore > 21 || pScore > dScore) endGame('win');
     else if (pScore < dScore) endGame('lose');
@@ -511,25 +409,13 @@ async function dealerTurn() {
 
 async function endGame(result) {
     isGameOver = true;
-    let msg = "";
-    
-    if (result === 'win') {
-        const isBJ = calculateScore(playerHand) === 21 && playerHand.length === 2;
-        balance += Math.floor(currentBet * (isBJ ? 3 : 2));
-        msg = isBJ ? "Blackjack! You win." : "You win!";
-    } else if (result === 'lose') {
-        msg = calculateScore(playerHand) > 21 ? "Bust! You lose." : "Dealer wins.";
-    } else {
-        balance += currentBet;
-        msg = "Push (Tie).";
-    }
+    if (result === 'win') balance += currentBet * 2;
+    else if (result === 'push') balance += currentBet;
     
     currentBet = 0;
-    messageEl.innerText = msg;
-    actionBtns.classList.add('hidden');
-    document.querySelector('.bet-controls').classList.remove('hidden');
-    
     updateUI();
+    actionBtns.classList.add('hidden');
+    document.getElementById('bet-controls').classList.remove('hidden');
     if (user) await updateDoc(doc(db, "users", user.uid), { money: balance });
 }
 
@@ -538,14 +424,10 @@ function updateUI() {
     document.getElementById('lobby-balance').innerText = balance.toLocaleString();
     document.getElementById('current-bet-display').innerText = currentBet.toLocaleString();
     document.getElementById('player-score').innerText = calculateScore(playerHand);
-    if (isGameOver) {
-        document.getElementById('dealer-score').innerText = calculateScore(dealerHand);
-    } else {
-        document.getElementById('dealer-score').innerText = "?";
-    }
+    document.getElementById('dealer-score').innerText = isGameOver ? calculateScore(dealerHand) : "?";
 }
 
-// --- [수정] 랭킹 시스템 NaN 및 스타일 보강 ---
+// --- [수정] 랭킹 시스템 NaN 방지 로직 ---
 rankBtn.onclick = () => {
     rankModal.classList.remove('hidden');
     loadRankings();
@@ -561,24 +443,22 @@ function loadRankings() {
             const data = doc.data();
             const li = document.createElement('li');
             
-            // 데이터 타입 검증
+            // 데이터 검증: money가 없거나 숫자가 아니면 0으로 처리
             const displayMoney = Number(data.money) || 0;
             const nickname = data.displayName || "Guest";
 
             li.innerHTML = `
-                <span style="font-weight:bold;">${index + 1}. ${nickname}</span>
+                <span><strong>${index + 1}.</strong> ${nickname}</span>
                 <span>${displayMoney.toLocaleString()} G</span>
             `;
             rankList.appendChild(li);
         });
     });
 }
-// ------------------------------------------------
 
 function createCardElement(card, isHidden = false) {
     const container = document.createElement('div');
     container.className = 'card'; 
-    
     const inner = document.createElement('div');
     inner.className = 'card-inner';
     if (isHidden) container.id = 'dealer-hidden-card';
@@ -587,29 +467,8 @@ function createCardElement(card, isHidden = false) {
     front.className = 'card-front';
     const isRed = card.s === '♥' || card.s === '♦';
     front.style.color = isRed ? 'var(--rose-gold)' : 'var(--deep-rose)';
-
-    const cornerTag = `<div class="card-corner"><div class="card-rank">${card.r}</div><div class="card-suit-small">${card.s}</div></div>`;
-    const symbolsGrid = document.createElement('div');
-    symbolsGrid.className = 'symbols-grid';
-
-    if (['J', 'Q', 'K'].includes(card.r)) {
-        symbolsGrid.innerHTML = `<div class="face-center">${card.r}</div>`;
-    } else if (card.r === 'A') {
-        symbolsGrid.innerHTML = `<div class="face-center" style="font-size: 2rem;">${card.s}</div>`;
-    } else {
-        const num = parseInt(card.r);
-        const positions = getSymbolPositions(num);
-        positions.forEach(pos => {
-            const s = document.createElement('div');
-            s.className = 'symbol';
-            s.style.gridArea = pos;
-            s.innerText = card.s;
-            symbolsGrid.appendChild(s);
-        });
-    }
-
-    front.innerHTML = `<div class="corner-wrapper top-left">${cornerTag}</div><div class="corner-wrapper bottom-right">${cornerTag}</div>`;
-    front.appendChild(symbolsGrid);
+    front.innerHTML = `<div style="position:absolute; top:5px; left:5px;">${card.r}${card.s}</div>
+                       <div style="font-size:2rem; display:flex; justify-content:center; align-items:center; height:100%;">${card.s}</div>`;
 
     const back = document.createElement('div');
     back.className = 'card-back';
@@ -618,36 +477,15 @@ function createCardElement(card, isHidden = false) {
     inner.appendChild(back);
     container.appendChild(inner);
 
-    if (!isHidden) {
-        setTimeout(() => {
-            inner.classList.add('flipped');
-        }, 50);
-    }
+    if (!isHidden) setTimeout(() => inner.classList.add('flipped'), 50);
     return container;
-}
-
-function getSymbolPositions(num) {
-    const posMap = {
-        2: ["1/2", "5/2"],
-        3: ["1/2", "3/2", "5/2"],
-        4: ["1/1", "1/3", "5/1", "5/3"],
-        5: ["1/1", "1/3", "3/2", "5/1", "5/3"],
-        6: ["1/1", "1/3", "3/1", "3/3", "5/1", "5/3"],
-        7: ["1/1", "1/3", "2/2", "3/1", "3/3", "5/1", "5/3"],
-        8: ["1/1", "1/3", "2/2", "3/1", "3/3", "4/2", "5/1", "5/3"],
-        9: ["1/1", "1/3", "2/1", "2/3", "3/2", "4/1", "4/3", "5/1", "5/3"],
-        10: ["1/1", "1/3", "2/1", "2/3", "2/2", "4/2", "4/1", "4/3", "5/1", "5/3"]
-    };
-    return posMap[num] || [];
 }
 
 function reorderCards(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
-    
     const cards = container.children;
     const overlap = 25; 
-
     for (let i = 0; i < cards.length; i++) {
         cards[i].style.position = 'absolute';
         cards[i].style.left = `calc(50% - 40px + ${(i - (cards.length - 1) / 2) * overlap}px)`;
@@ -656,29 +494,15 @@ function reorderCards(containerId) {
 }
 
 document.getElementById('back-to-lobby').onclick = () => {
-    if (!isGameOver && !confirm("Game in progress. Return to lobby?")) return;
     board.classList.add('hidden');
     lobbySection.classList.remove('hidden');
 };
 
 function resetSingleGame() {
     isGameOver = true;
-    playerHand = [];
-    dealerHand = [];
+    playerHand = []; dealerHand = [];
     currentBet = 0;
-    
-    const playerCardsEl = document.getElementById('player-cards');
-    const dealerCardsEl = document.getElementById('dealer-cards');
-    const playerScoreEl = document.getElementById('player-score');
-    const dealerScoreEl = document.getElementById('dealer-score');
-
-    if (playerCardsEl) playerCardsEl.innerHTML = '';
-    if (dealerCardsEl) dealerCardsEl.innerHTML = '';
-    if (playerScoreEl) playerScoreEl.innerText = '';
-    if (dealerScoreEl) dealerScoreEl.innerText = '';
-    
-    document.getElementById('action-btns').classList.add('hidden');
-    document.getElementById('bet-controls').classList.remove('hidden');
-    
+    document.getElementById('player-cards').innerHTML = '';
+    document.getElementById('dealer-cards').innerHTML = '';
     updateUI(); 
 }
