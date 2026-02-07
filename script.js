@@ -115,7 +115,14 @@ function updateUI() {
     document.getElementById('current-bet-display').innerText = (isMultiplayer ? myMultiBet : currentBet).toLocaleString();
     if (!isMultiplayer) {
         document.getElementById('player-score').innerText = calculateScore(playerHand) || "";
-        document.getElementById('dealer-score').innerText = calculateScore(dealerHand) || "";
+        
+        // 수정: 게임 중(isGameOver가 false)일 때는 딜러 점수를 숨깁니다.
+        const dealerScoreEl = document.getElementById('dealer-score');
+        if (isGameOver) {
+            dealerScoreEl.innerText = calculateScore(dealerHand) || "";
+        } else {
+            dealerScoreEl.innerText = "?"; // 게임 중에는 물음표로 표시
+        }
     }
 }
 
@@ -191,6 +198,7 @@ async function runSingleDealerAI() {
     }
     
     isGameOver = true;
+    updateUI();
     document.getElementById('bet-controls').classList.remove('hidden');
     await updateDoc(doc(db, "users", user.uid), { money: balance });
     currentBet = 0;
@@ -286,6 +294,10 @@ function renderMultiTable(data) {
 
     const dCards = document.getElementById('dealer-cards');
     dCards.innerHTML = '';
+
+    const dScoreText = data.status === "playing" ? "?" : calculateScore(data.dealerHand);
+document.getElementById('dealer-score').innerText = dScoreText;
+
     data.dealerHand.forEach((c, i) => dCards.appendChild(createCardElement(c, data.status === "playing" && i === 1)));
     reorderCards('dealer-cards');
 }
