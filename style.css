@@ -55,8 +55,8 @@ body {
 /* --- 테이블 및 메시지 --- */
 .table-area {
     background: rgba(142, 93, 103, 0.05);
-    border-radius: 30px; padding: 20px; margin: 20px 0;
-    min-height: 400px; display: flex; flex-direction: column;
+    border-radius: 30px; padding: 20px 20px 10px 20px; margin: 20px 0 10px 0;
+    min-height: auto; display: flex; flex-direction: column;
 }
 
 .shabby-msg {
@@ -201,11 +201,12 @@ body {
 .bottom-right { bottom: 0; right: 0; transform: rotate(180deg); }
 .card-rank { font-size: 0.8rem; font-weight: bold; }
 
-/* style.css 하단에 추가 */
+/* style.css 수정 */
 .player-area {
     text-align: center;
-    padding: 10px;
+    padding: 10px 10px 0 10px; /* 아래쪽(세 번째 값) padding을 0으로 설정 */
     flex: 1;
+    margin-bottom: 5px;       /* 칸 자체의 아래쪽 바깥 여백 축소 */
 }
 
 #single-player-area.hidden {
