@@ -128,17 +128,19 @@ function updateUI() {
 
 window.adjustBet = async (amount) => {
     if (!isGameOver && !isMultiplayer) return;
-    if (balance >= amount) {
-        balance -= amount;
+    
+    // amount를 강제로 숫자로 변환하여 NaN 방지
+    const numericAmount = Number(amount);
+    
+    if (balance >= numericAmount) {
+        balance -= numericAmount;
         if (isMultiplayer) {
-            myMultiBet += Number(amount);
+            myMultiBet += numericAmount; // 여기서 NaN 발생 확률 높음
             await syncMultiBet();
         } else {
-            currentBet += Number(amount);
+            currentBet += numericAmount;
         }
         updateUI();
-    } else {
-        alert("Not enough gold!");
     }
 };
 
