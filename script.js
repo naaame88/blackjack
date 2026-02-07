@@ -127,15 +127,12 @@ function updateUI() {
 }
 
 window.adjustBet = async (amount) => {
-    if (!isGameOver && !isMultiplayer) return;
-    
-    // amount를 강제로 숫자로 변환하여 NaN 방지
     const numericAmount = Number(amount);
-    
     if (balance >= numericAmount) {
         balance -= numericAmount;
         if (isMultiplayer) {
-            myMultiBet += numericAmount; // 여기서 NaN 발생 확률 높음
+            myMultiBet += numericAmount;
+            // 중요: 베팅 직후 DB에 즉시 반영하여 방장이 알 수 있게 함
             await syncMultiBet();
         } else {
             currentBet += numericAmount;

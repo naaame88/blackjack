@@ -40,6 +40,10 @@
                     <h2 class="main-title" style="font-size: 1.5rem;">Multiplayer Lobby</h2>
                     <p id="room-status-msg">Searching for a table...</p>
                     <div id="player-list-multi" style="margin: 20px 0; text-align: left; max-height: 150px; overflow-y: auto;"></div>
+                    <div class="bet-controls">
+                        <button class="coquette-btn small" onclick="adjustBet(100)">+100</button>
+                        <button class="coquette-btn small" onclick="adjustBet(500)">+500</button>
+                    </div>
                     <div style="display: flex; flex-direction: column; gap: 10px; justify-content: center;">
                         <button id="multi-start-btn" class="coquette-btn main hidden">Start Game</button>
                         <button id="leave-multi" class="coquette-btn small">Leave</button>
