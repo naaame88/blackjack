@@ -23,6 +23,8 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
+const isHost = players[0] && players[0].uid === auth.currentUser.uid;
+const startBtn = document.getElementById('start-game-btn');
 
 let user = null;
 let balance = 0;
@@ -60,6 +62,22 @@ const multiGameBtn = document.getElementById('multi-game-btn');
 const multiLobbyModal = document.getElementById('multi-lobby-modal');
 const playerListMulti = document.getElementById('player-list-multi');
 const multiContainer = document.getElementById('multi-player-container');
+
+document.getElementById('start-game-btn').onclick = async () => {
+    if (!currentRoomId) return;
+    
+    const roomRef = doc(db, "rooms", currentRoomId);
+    
+    // 1. 새 덱 생성 및 셔플
+    createDeck(); 
+    
+    // 2. DB 업데이트 (상태 변경 및 덱 공유)
+    await updateDoc(roomRef, {
+        status: "playing",
+        deck: deck, // 모든 플레이어가 동일한 덱을 쓰도록 저장
+        turnIndex: 0 // 첫 번째 플레이어부터 시작
+    });
+};
 
 // 1. 멀티플레이어 버튼 클릭 시
 multiGameBtn.onclick = async () => {
@@ -184,27 +202,22 @@ function updateLobbyUI(players) {
 
 // 실시간 게임 감시
 function listenToRoom(roomId) {
-    onSnapshot(doc(db, "rooms", roomId), async (snap) => {
-        const data = snap.data();
-        if (!data) return;
-
-        // 1. 대기실 정보 업데이트
-        if (data.status === "waiting") {
-            updateLobbyUI(data.players);
-            if (data.players.length === 3) {
-                // 3명이 모이면 게임 시작 상태로 변경 (방장 권한)
-                if (user.uid === data.players[0].uid) {
-                    await startMultiGame(roomId, data);
-                }
-            }
-        } 
-        // 2. 게임 진행 중 업데이트
-        else if (data.status === "playing") {
-            multiLobbyModal.classList.add('hidden');
-            board.classList.remove('hidden');
-            isMultiplayer = true;
-            renderMultiTable(data);
+    // listenToRoom 함수 내부의 onSnapshot 로직 수정
+    onSnapshot(roomRef, (docSnap) => {
+        const roomData = docSnap.data();
+        if (!roomData) return;
+        
+        // 상태가 'playing'으로 변하면 모든 플레이어의 화면을 전환
+        if (roomData.status === "playing") {
+            lobbySection.classList.add('hidden'); // 로비 숨기기
+            board.classList.remove('hidden');    // 게임판 보이기
+            
+            // 싱글플레이 UI가 아닌 멀티플레이 UI 전용 세팅 실행
+            setupMultiplayerGame(roomData);
         }
+        
+        // 플레이어 목록 업데이트 등 기존 로직...
+        updatePlayerSlots(roomData.players);
     });
 }
 
