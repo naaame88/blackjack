@@ -284,6 +284,10 @@ function listenToRoom(roomId) {
             multiLobbyModal.classList.add('hidden');
             board.classList.remove('hidden');
             renderMultiTable(data);
+
+            if (data.turnIndex >= data.players.length && data.players[0].uid === user.uid) {
+                runMultiDealerAI(data);
+            }
         }
     });
 }
@@ -312,12 +316,13 @@ function renderMultiTable(data) {
             slot.style.transform = baseTransform;
         }
         
+        const currentScore = calculateScore(p.hand);
         slot.innerHTML = `
-            <div id="cards-p-${i}" class="card-row" style="height:80px;"></div>
-            <p class="score-text">${calculateScore(p.hand)}</p>
-            <div style="font-size:0.7rem;">${p.name}<br>🎯${p.bet}</div>
-            <div class="status-tag" style="background:${getStatusColor(p.status)}">${p.status}</div>
-        `;
+        <div id="cards-p-${i}" class="card-row" style="height:80px;"></div>
+        <div style="font-size:0.8rem; font-weight:bold; color:var(--deep-rose); margin-top:5px;">${p.name}</div>
+        <div class="score-text" style="margin: 2px 0;">Score: ${currentScore}</div>
+        <div style="font-size:0.7rem; color:var(--rose-gold);">Bet: ${p.bet}G</div>
+        <div class="status-tag" style="background:${getStatusColor(p.status)}">${p.status}</div>`;
         multiContainer.appendChild(slot);
         p.hand.forEach(c => document.getElementById(`cards-p-${i}`).appendChild(createCardElement(c)));
         reorderCards(`cards-p-${i}`);
@@ -330,7 +335,7 @@ function renderMultiTable(data) {
     dCards.innerHTML = '';
 
     const dScoreText = data.status === "playing" ? "?" : calculateScore(data.dealerHand);
-document.getElementById('dealer-score').innerText = dScoreText;
+    document.getElementById('dealer-score').innerText = dScoreText;
 
     data.dealerHand.forEach((c, i) => dCards.appendChild(createCardElement(c, data.status === "playing" && i === 1)));
     reorderCards('dealer-cards');
@@ -343,14 +348,27 @@ document.getElementById('hit-btn').onclick = async () => {
         const snap = await getDoc(roomRef);
         const data = snap.data();
         const idx = data.turnIndex;
+        
         if (data.players[idx].uid !== user.uid) return;
 
         let up = [...data.players], dk = [...data.deck];
-        up[idx].hand.push(dk.pop());
-        if (calculateScore(up[idx].hand) > 21) {
+        const newCard = dk.pop();
+        up[idx].hand.push(newCard);
+        
+        const newScore = calculateScore(up[idx].hand);
+
+        // 21을 초과하면 즉시 bust 처리하고 다음 턴으로 넘김
+        if (newScore > 21) {
             up[idx].status = "bust";
-            await updateDoc(roomRef, { players: up, deck: dk, turnIndex: idx + 1 });
+            // 모든 플레이어가 턴을 마쳤는지 확인하여 게임 종료 여부 결정 필요
+            await updateDoc(roomRef, { 
+                players: up, 
+                deck: dk, 
+                turnIndex: idx + 1 // 다음 플레이어로 턴 넘김
+            });
+            alert("Bust! Your score is " + newScore);
         } else {
+            // 21 이하일 때는 카드만 추가하고 내 턴 유지
             await updateDoc(roomRef, { players: up, deck: dk });
         }
     } else {
