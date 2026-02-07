@@ -209,9 +209,12 @@ body {
 .player-slot:nth-child(2) { left: 50%; bottom: 10px; transform: translateX(-50%); }
 .player-slot:nth-child(3) { right: 5%; bottom: 40px; transform: rotate(15deg); }
 
+/* 수정 후 style.css */
 .player-slot.active-turn {
     filter: drop-shadow(0 0 10px var(--rose-gold));
-    transform: scale(1.1) ${props => props.rotate || ''}; /* JS에서 덮어쓰기 가능 */
+    transform: scale(1.1); /* JS 변수 제거 */
+    z-index: 10; /* 차례인 플레이어를 위로 올림 */
+    transition: all 0.5s ease;
 }
 
 /* --- 모달 및 UI 유틸리티 --- */

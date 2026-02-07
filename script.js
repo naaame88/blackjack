@@ -229,7 +229,13 @@ function listenToRoom(roomId) {
 
         if (data.status === "waiting") {
             playerListMulti.innerHTML = players.map(p => `<div>${p.name} (Bet: ${p.bet})</div>`).join('');
-            multiStartBtn.classList.toggle('hidden', players[0].uid !== user.uid);
+            // 방장(players[0])이고, 인원이 2명 이상일 때만 버튼을 보여줍니다.
+            if (players[0].uid === user.uid && players.length >= 2) {
+                multiStartBtn.classList.remove('hidden');
+                multiStartBtn.innerText = `Start Game (${players.length}/3)`; // 현재 인원 표시 서비스
+            } else {
+                    multiStartBtn.classList.add('hidden');
+            }
         } else if (data.status === "playing" || data.status === "finished") {
             isMultiplayer = true;
             lobbySection.classList.add('hidden');
@@ -250,6 +256,20 @@ function renderMultiTable(data) {
         const isMyTurn = data.turnIndex === i && data.status === "playing";
         const slot = document.createElement('div');
         slot.className = `player-slot ${isMyTurn ? 'active-turn' : ''}`;
+        
+        // 기본 위치 및 각도 설정 (부채꼴 레이아웃 유지)
+        let baseTransform = "";
+        if (i === 0) baseTransform = "rotate(-15deg)";
+        else if (i === 1) baseTransform = "translateX(-50%)";
+        else if (i === 2) baseTransform = "rotate(15deg)";
+
+        // [중요] 내 차례일 때 기존 각도를 유지하면서 크기만 키움
+        if (isMyTurn) {
+            slot.style.transform = `${baseTransform} scale(1.1)`;
+        } else {
+            slot.style.transform = baseTransform;
+        }
+        
         slot.innerHTML = `
             <div id="cards-p-${i}" class="card-row" style="height:80px;"></div>
             <p class="score-text">${calculateScore(p.hand)}</p>
