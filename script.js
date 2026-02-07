@@ -271,6 +271,27 @@ async function runDealerAI(roomId, data) {
     });
 }
 
+// 싱글 플레이어 게임 상태를 초기화하는 함수
+function resetSingleGame() {
+    isGameOver = true;
+    playerHand = [];
+    dealerHand = [];
+    currentBet = 0;
+    
+    // 화면상의 카드와 점수 초기화
+    document.getElementById('player-cards').innerHTML = '';
+    document.getElementById('dealer-cards').innerHTML = '';
+    document.getElementById('player-score').innerText = '';
+    document.getElementById('dealer-score').innerText = '';
+    
+    // 메시지 및 버튼 상태 복구
+    messageEl.innerText = "배팅을 하고 Deal 버튼을 누르세요!";
+    document.getElementById('action-btns').classList.add('hidden');
+    document.getElementById('bet-controls').classList.remove('hidden');
+    
+    updateUI(); // 잔액 표시 업데이트
+}
+
 // 로그인 처리
 loginBtn.onclick = async () => {
     try {
