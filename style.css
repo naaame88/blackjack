@@ -118,7 +118,7 @@ body {
 .card-row {
     display: flex;
     justify-content: center;
-    min-height: 150px; /* 반드시 높이가 지정되어야 카드가 보입니다 */
+    min-height: 160px; /* 반드시 높이가 지정되어야 카드가 보입니다 */
     position: relative;
     width: 100%;
     margin: 20px 0;
@@ -127,12 +127,10 @@ body {
 .card {
     width: 80px;
     height: 120px;
-    position: absolute; /* 이 속성이 없으면 reorderCards가 작동하지 않습니다 */
-    background: white;
-    border-radius: 8px;
-    box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
-    perspective: 1000px; /* 3D 뒤집기 효과를 위해 추가 */
-}
+    position: absolute;
+    /* 배경을 투명하게 해서 뒤집힐 때 네모난 잔상이 남지 않게 함 */
+    background: transparent !important; 
+    perspective: 1000px;}
 
 .card:hover { transform: translateY(-10px) rotate(-2deg); z-index: 100; }
 
