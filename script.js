@@ -406,9 +406,15 @@ document.getElementById('rank-btn').onclick = async () => {
     const snap = await getDocs(q);
     const list = document.getElementById('rank-list');
     list.innerHTML = '';
+    
     snap.forEach((doc, i) => {
         const d = doc.data();
-        list.innerHTML += `<li>${i + 1}. ${d.displayName || 'Guest'} - ${d.money.toLocaleString()}G</li>`;
+        
+        // [중요] d.money가 유효하지 않을 경우를 대비해 Number() 변환 및 기본값 0 설정
+        const safeMoney = Number(d.money) || 0; 
+        const name = d.displayName || 'Guest';
+
+        list.innerHTML += `<li>${i + 1}. ${name} - ${safeMoney.toLocaleString()}G</li>`;
     });
     document.getElementById('rank-modal').classList.remove('hidden');
 };
