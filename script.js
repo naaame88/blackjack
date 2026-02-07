@@ -678,7 +678,6 @@ function resetSingleGame() {
     if (dealerScoreEl) dealerScoreEl.innerText = '';
     
     // 메시지 및 버튼 상태 복구
-    messageEl.innerText = "배팅을 하고 Deal 버튼을 누르세요!";
     document.getElementById('action-btns').classList.add('hidden');
     document.getElementById('bet-controls').classList.remove('hidden');
     

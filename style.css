@@ -23,7 +23,7 @@ body {
     width: 95%; max-width: 500px;
     margin: auto;
     background: rgba(255, 255, 255, 0.85);
-    padding: 25px; border-radius: 40px; border: 1px solid var(--soft-pink);
+    padding: 15px; border-radius: 40px; border: 1px solid var(--soft-pink);
     box-sizing: border-box; backdrop-filter: blur(10px);
     box-shadow: 0 10px 30px rgba(0,0,0,0.05);
 }
@@ -118,7 +118,7 @@ body {
 .card-row {
     display: flex;
     justify-content: center;
-    min-height: 130px; /* 반드시 높이가 지정되어야 카드가 보입니다 */
+    min-height: 150px; /* 반드시 높이가 지정되어야 카드가 보입니다 */
     position: relative;
     width: 100%;
     margin: 20px 0;
