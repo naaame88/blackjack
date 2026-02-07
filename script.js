@@ -517,3 +517,38 @@ document.getElementById('start-game-btn').onclick = () => {
     isGameOver = true;
     updateUI();
 };
+
+// 파일 하단에 이 함수를 추가해 주세요!
+async function runMultiDealerAI(data) {
+    const roomRef = doc(db, "rooms", currentRoomId);
+    let dk = [...data.deck];
+    let dHand = [...data.dealerHand];
+
+    // 딜러 규칙: 17점 미만이면 카드를 계속 뽑음
+    while (calculateScore(dHand) < 17) {
+        dHand.push(dk.pop());
+        await sleep(700); 
+    }
+
+    // 최종 결과 계산
+    const finalPlayers = data.players.map(p => {
+        const ps = calculateScore(p.hand);
+        const ds = calculateScore(dHand);
+        let finalStatus = "";
+
+        if (ps > 21) finalStatus = "bust";
+        else if (ds > 21 || ps > ds) finalStatus = "win";
+        else if (ps === ds) finalStatus = "push";
+        else finalStatus = "lose";
+
+        return { ...p, status: finalStatus };
+    });
+
+    // DB 업데이트: 상태를 finished로 변경하여 카드와 점수 공개
+    await updateDoc(roomRef, {
+        status: "finished",
+        deck: dk,
+        dealerHand: dHand,
+        players: finalPlayers
+    });
+}
