@@ -417,26 +417,37 @@ dealBtn.onclick = async () => {
     if (currentBet <= 0) return alert("Please place a bet!");
     isGameOver = false;
     
-    // 게임 시작 시 배팅 컨트롤 숨기기
-    document.querySelector('.bet-controls').classList.add('hidden');
+    // 싱글 플레이 영역 확실히 표시 및 배팅 컨트롤 숨기기
+    document.getElementById('single-player-area').classList.remove('hidden');
+    document.getElementById('multi-player-container').classList.add('hidden');
+    document.getElementById('bet-controls').classList.add('hidden');
     
-    createDeck();
+    // 덱 생성 및 초기화
+    createDeck(); 
     playerHand = [deck.pop(), deck.pop()];
     dealerHand = [deck.pop(), deck.pop()];
     
-    document.getElementById('player-cards').innerHTML = ''; // 싱글 전용 id
+    // 기존 카드 제거
+    document.getElementById('player-cards').innerHTML = ''; 
     document.getElementById('dealer-cards').innerHTML = '';
         
-    // 초기 카드 배분 애니메이션
+    // 카드 배분 애니메이션 및 위치 재정렬
+    // 1번째 플레이어 카드
     document.getElementById('player-cards').appendChild(createCardElement(playerHand[0]));
     reorderCards('player-cards');
-    await sleep(500);
+    await sleep(400);
+    
+    // 1번째 딜러 카드
     document.getElementById('dealer-cards').appendChild(createCardElement(dealerHand[0]));
     reorderCards('dealer-cards');
-    await sleep(500);
+    await sleep(400);
+    
+    // 2번째 플레이어 카드
     document.getElementById('player-cards').appendChild(createCardElement(playerHand[1]));
     reorderCards('player-cards');
-    await sleep(500);
+    await sleep(400);
+    
+    // 2번째 딜러 카드 (뒷면)
     document.getElementById('dealer-cards').appendChild(createCardElement(dealerHand[1], true));
     reorderCards('dealer-cards');
     
