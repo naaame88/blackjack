@@ -9,7 +9,7 @@
 body, html {
     margin: 0; padding: 0;
     min-height: 100vh;
-    font-family: 'Noto Sans KR', sans-serif; /* 멘트 일반화에 맞춰 깔끔한 고딕 적용 */
+    font-family: 'Cormorant Garamond', serif;
 }
 
 body {
@@ -20,195 +20,116 @@ body {
 }
 
 #game-outer-frame {
-    width: 95%; max-width: 480px;
+    width: 95%; max-width: 500px;
     margin: auto;
     background: rgba(255, 255, 255, 0.85);
     padding: 25px; border-radius: 40px; border: 1px solid var(--soft-pink);
     box-sizing: border-box; backdrop-filter: blur(10px);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
 }
 
-/* --- 헤더 및 타이틀 --- */
 .main-title {
     font-family: 'Pinyon Script', cursive;
-    font-size: 3rem;
-    color: var(--deep-rose);
-    text-align: center;
-    margin: 0 0 10px 0;
+    font-size: 3.5rem; color: var(--deep-rose);
+    margin: 0; text-align: center;
 }
 
-/* --- 로비 섹션 스타일 --- */
-#lobby-section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 15px;
-    padding: 10px 0;
-}
-
-.lobby-user-info {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 1.1rem;
-    color: var(--deep-rose);
-}
-
-.lobby-purse {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 1.2rem;
-    color: var(--deep-rose);
-    border-bottom: 1px solid var(--soft-pink);
-    padding-bottom: 5px;
-    margin-bottom: 5px;
-}
-
-.lobby-menu {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    width: 85%;
-}
-
-/* --- 버튼 공통 스타일 (크기 축소 및 우아함 유지) --- */
+/* --- 버튼 스타일 --- */
 .coquette-btn {
     background: var(--ivory);
     border: 1px solid var(--rose-gold);
     color: var(--deep-rose);
-    padding: 8px 18px; /* 크기 축소 */
-    border-radius: 20px;
-    cursor: pointer;
-    transition: 0.3s;
-    font-family: 'Cormorant Garamond', serif;
-    font-weight: 600;
-    font-size: 0.95rem;
+    padding: 10px 20px; border-radius: 20px;
+    cursor: pointer; transition: all 0.3s;
+    font-family: 'Cormorant Garamond', serif; font-weight: 600;
 }
 
-.coquette-btn:hover {
-    background-color: var(--soft-pink);
-    transform: translateY(-1px);
+.coquette-btn:hover { background: var(--soft-pink); transform: translateY(-2px); }
+.menu-btn { width: 100%; margin: 8px 0; font-size: 1.1rem; }
+.coquette-btn.small { padding: 5px 12px; font-size: 0.8rem; }
+.coquette-btn.main { background: var(--rose-gold); color: white; padding: 12px 30px; font-size: 1.2rem; }
+
+/* --- 레이아웃 구분 --- */
+.hidden { display: none !important; }
+
+/* --- 테이블 및 메시지 --- */
+.table-area {
+    background: rgba(142, 93, 103, 0.05);
+    border-radius: 30px; padding: 20px; margin: 20px 0;
+    min-height: 400px; display: flex; flex-direction: column;
 }
 
-.menu-btn {
-    width: 100%;
-    padding: 12px !important;
-    font-size: 1rem !important;
-    box-shadow: 0 2px 8px rgba(216, 167, 177, 0.1);
-}
-
-.coquette-btn.small {
-    padding: 4px 12px;
-    font-size: 0.8rem;
-}
-
-/* --- 모달(닉네임/랭킹) 스타일 --- */
-.modal {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.4);
-    display: flex; justify-content: center; align-items: center;
-    z-index: 1000; backdrop-filter: blur(5px);
-}
-
-.modal-content {
-    background: var(--ivory);
-    padding: 30px;
-    border-radius: 30px;
-    width: 85%;
-    max-width: 350px;
-    text-align: center;
-    border: 1px solid var(--rose-gold);
-}
-
-#nickname-input {
-    width: 85%;
-    padding: 10px;
-    margin: 15px 0;
-    border: 1px solid var(--rose-gold);
-    border-radius: 10px;
-    text-align: center;
-    font-family: 'Cormorant Garamond', serif;
-}
-
-#nickname-input:focus {
-    outline: none;
-    border-color: var(--deep-rose);
-    box-shadow: 0 0 5px var(--soft-pink);
-}
-
-#rank-list {
-    list-style: none;
-    padding: 0;
-    margin: 20px 0;
-    font-family: 'Cormorant Garamond', serif;
-}
-
-#rank-list li {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px 0;
-    border-bottom: 1px dotted var(--rose-gold);
-    color: var(--deep-rose);
-    font-style: italic;
-}
-
-/* --- 게임 보드 영역 --- */
-.status-bar {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 20px;
-}
-
-.info-box {
-    text-align: center;
-    background: white;
-    padding: 5px 15px;
-    border-radius: 15px;
-    border: 1px solid var(--soft-pink);
-}
-
-.info-box .label { font-size: 0.7rem; color: #999; display: block; }
-.info-box .value { font-family: 'Cormorant Garamond', serif; font-weight: bold; color: var(--deep-rose); }
-
-.table-area { position: relative; }
 .shabby-msg {
-    text-align: center;
-    margin: 20px 0;
-    font-style: italic;
-    color: var(--deep-rose);
-    min-height: 24px;
+    font-style: italic; color: var(--deep-rose);
+    text-align: center; margin: 15px 0; min-height: 24px;
+}
+
+/* --- 딜러 및 싱글 플레이 영역 --- */
+.dealer-area, .player-area {
+    text-align: center; flex: 1;
 }
 
 .role-title {
-    text-align: center;
-    font-family: 'Pinyon Script', cursive;
-    font-size: 1.5rem;
-    margin: 10px 0;
-    color: var(--rose-gold);
+    font-family: 'Great Vibes', cursive;
+    color: var(--rose-gold); font-size: 1.8rem; margin: 5px 0;
 }
 
-.score-text {
-    text-align: center;
-    color: var(--deep-rose);
-    font-size: 0.9rem;
-    margin: 5px 0;
+/* --- 멀티플레이어 컨테이너 (3인 슬롯) --- */
+.multi-container {
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.player-slot {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 10px 5px; border-radius: 15px;
+    background: rgba(255, 255, 255, 0.4);
+    border: 2px solid transparent;
+    transition: all 0.4s ease;
+    min-width: 0; /* flex 자식의 너비 한계 방지 */
+}
+
+.player-slot.active-turn {
+    border-color: var(--rose-gold);
+    background: rgba(216, 167, 177, 0.15);
+    box-shadow: 0 0 15px var(--soft-pink);
+    transform: scale(1.05);
+}
+
+.player-slot .card-row {
+    transform: scale(0.65); /* 3명일 때는 카드를 작게 표시 */
+    margin: -15px 0; /* 스케일 조정으로 인한 여백 제거 */
+}
+
+.status-tag {
+    font-size: 0.6rem;
+    padding: 2px 6px;
+    border-radius: 10px;
+    background: var(--rose-gold);
+    color: white;
+    margin-top: 5px;
 }
 
 /* --- 카드 디자인 --- */
 .card-row {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 140px;
+    display: flex; justify-content: center; min-height: 120px;
+    position: relative; padding: 10px;
 }
 
-.card-container {
-    perspective: 1000px;
-    position: relative;
-    transition: transform 0.3s ease;
+.card {
+    width: 80px; height: 120px;
+    perspective: 1000px; margin: 0 -20px; transition: transform 0.3s;
 }
+
+.card:hover { transform: translateY(-10px) rotate(-2deg); z-index: 100; }
 
 .card-inner {
-    position: relative; width: 80px; height: 115px;
-    transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-    transform-style: preserve-3d;
+    width: 100%; height: 100%; position: relative;
+    transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card-inner.flipped { transform: rotateY(180deg); }
@@ -217,6 +138,7 @@ body {
     position: absolute; width: 100%; height: 100%;
     backface-visibility: hidden; border-radius: 8px;
     border: 1px solid var(--soft-pink);
+    box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
 }
 
 .card-front { background: white; transform: rotateY(180deg); overflow: hidden; }
@@ -226,42 +148,55 @@ body {
     background-size: 6px 6px; 
 }
 
-/* 카드 내부 숫자/문양 */
+/* --- 모달 스타일 --- */
+.modal {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(142, 93, 103, 0.4);
+    display: flex; justify-content: center; align-items: center; z-index: 1000;
+}
+
+.modal-content {
+    background: var(--ivory); padding: 30px; border-radius: 30px;
+    text-align: center; max-width: 80%; border: 1px solid var(--soft-pink);
+}
+
+/* --- 점수 및 상태바 --- */
+.score-text { font-weight: bold; color: var(--deep-rose); font-size: 0.9rem; margin: 5px 0; }
+
+.status-bar {
+    display: flex; justify-content: space-between;
+    background: white; padding: 10px 20px; border-radius: 20px; margin-bottom: 15px;
+}
+
+.info-box { display: flex; flex-direction: column; align-items: center; }
+.info-box .label { font-size: 0.7rem; color: var(--rose-gold); text-transform: uppercase; }
+.info-box .value { font-size: 1.1rem; font-weight: bold; color: var(--deep-rose); }
+
+/* --- 컨트롤 영역 --- */
+.controls { margin-top: 15px; }
+.bet-controls, .action-controls {
+    display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;
+}
+
+/* 카드 내부 문양 스타일 (script.js 생성용) */
 .symbols-grid {
-    position: absolute; top: 20px; left: 10px; right: 10px; bottom: 20px;
+    position: absolute; top: 15px; left: 5px; right: 5px; bottom: 15px;
     display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(5, 1fr);
-    align-items: center; justify-items: center;
+    align-items: center; justify-items: center; pointer-events: none;
 }
 .symbol { font-size: 0.5rem; }
 .face-center { grid-area: 1/1/6/4; font-size: 1.8rem; display: flex; align-items: center; justify-content: center; }
-
-.corner-wrapper { position: absolute; padding: 3px; line-height: 1; }
+.corner-wrapper { position: absolute; padding: 3px; line-height: 1; pointer-events: none;}
 .top-left { top: 0; left: 0; }
 .bottom-right { bottom: 0; right: 0; transform: rotate(180deg); }
 .card-rank { font-size: 0.8rem; font-weight: bold; }
-.card-suit-small { font-size: 0.6rem; }
 
-/* --- 컨트롤러 영역 --- */
-.controls {
-    margin-top: 25px;
+/* style.css 하단에 추가 */
+.player-area {
     text-align: center;
+    padding: 10px;
+    flex: 1;
 }
 
-.bet-controls, .action-controls {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-}
-
-.hidden { display: none !important; }
-
-.bet-controls {
-    display: flex;
-    justify-content: center;
-    gap: 5px; /* 버튼 간격을 좁혀서 한 줄에 들어오게 조절 */
-    flex-wrap: wrap; /* 화면이 작으면 다음 줄로 넘어가게 설정 */
-}
-
-.bet-controls .coquette-btn.small {
-    padding: 4px 8px; /* 버튼 안쪽 여백을 조금 줄여서 크기 조절 */
-    font-size: 0.75rem;}
+#single-player-area.hidden {
+    display: none;}

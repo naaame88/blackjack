@@ -31,6 +31,7 @@ let lastClaimDate = "";
 let deck = [], playerHand = [], dealerHand = [];
 let isGameOver = true;
 let currentRoomId = null;
+let isMultiplayer = false;
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -58,6 +59,7 @@ const closeNicknameBtn = document.getElementById('close-nickname');
 const multiGameBtn = document.getElementById('multi-game-btn');
 const multiLobbyModal = document.getElementById('multi-lobby-modal');
 const playerListMulti = document.getElementById('player-list-multi');
+const multiContainer = document.getElementById('multi-player-container');
 
 // 1. 멀티플레이어 버튼 클릭 시
 multiGameBtn.onclick = async () => {
@@ -65,19 +67,27 @@ multiGameBtn.onclick = async () => {
     joinOrCreateRoom();
 };
 
-// 2. 방 참가 또는 생성 로직
+// 2. 방 참가 또는 생성 로직 (수정본)
 async function joinOrCreateRoom() {
     const roomsRef = collection(db, "rooms");
-    // 대기 중(waiting)이고 3명 미만인 방 찾기
     const q = query(roomsRef, where("status", "==", "waiting"), limit(1));
     const querySnapshot = await getDocs(q);
 
     let roomId;
     if (querySnapshot.empty) {
-        // 새 방 생성
+        // 새 방 생성 (방장이 됨)
         const newRoom = await addDoc(roomsRef, {
             status: "waiting",
-            players: [{ uid: user.uid, name: displayNickname.innerText, isReady: false }],
+            players: [{ 
+                uid: user.uid, 
+                name: displayNickname.innerText, 
+                isReady: false, 
+                hand: [], 
+                status: "thinking" 
+            }],
+            turnIndex: 0,
+            deck: generateDeckArray(), // 공용 덱 생성
+            dealerHand: [],
             createdAt: serverTimestamp()
         });
         roomId = newRoom.id;
@@ -85,39 +95,115 @@ async function joinOrCreateRoom() {
         // 기존 방 입장
         roomId = querySnapshot.docs[0].id;
         await updateDoc(doc(db, "rooms", roomId), {
-            players: arrayUnion({ uid: user.uid, name: displayNickname.innerText, isReady: false })
+            players: arrayUnion({ 
+                uid: user.uid, 
+                name: displayNickname.innerText, 
+                isReady: false, 
+                hand: [], 
+                status: "thinking" 
+            })
         });
     }
     currentRoomId = roomId;
     listenToRoom(roomId);
 }
 
-// rooms/{roomId} 문서를 실시간 감시
-function listenToGame(roomId) {
-    onSnapshot(doc(db, "rooms", roomId), (snap) => {
+// 공용 덱 생성 함수
+function generateDeckArray() {
+    const suits = ['♠', '♥', '♦', '♣'];
+    const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+    let newDeck = [];
+    for (let s of suits) for (let r of ranks) newDeck.push({ s, r });
+    return newDeck.sort(() => Math.random() - 0.5);
+}
+
+// [멀티플레이어 핵심: 렌더링 및 턴 관리]
+function renderMultiTable(data) {
+    multiContainer.innerHTML = ''; // 기존 슬롯 초기화
+    
+    data.players.forEach((p, index) => {
+        const isMyTurn = data.turnIndex === index;
+        const isMe = p.uid === user.uid;
+        
+        // 슬롯 생성
+        const slot = document.createElement('div');
+        slot.className = `player-slot ${isMyTurn ? 'active-turn' : ''}`;
+        
+        slot.innerHTML = `
+            <div id="cards-player-${index}" class="card-row"></div>
+            <p class="score-text">${calculateScore(p.hand)}</p>
+            <h3 class="role-title" style="font-size:1rem;">${p.name}${isMe ? ' (You)' : ''}</h3>
+            <div class="status-tag">${p.status.toUpperCase()}</div>
+        `;
+        
+        multiContainer.appendChild(slot);
+        
+        // 카드 그리기
+        const cardRow = document.getElementById(`cards-player-${index}`);
+        p.hand.forEach(card => {
+            cardRow.appendChild(createCardElement(card));
+        });
+        reorderCards(`cards-player-${index}`);
+
+        // 내 차례일 때만 버튼 활성화
+        if (isMe && isMyTurn && p.status === "thinking" && data.status === "playing") {
+            actionBtns.classList.remove('hidden');
+            messageEl.innerText = "Your Turn! Hit or Stay?";
+        } else if (isMe && isMyTurn && p.status !== "thinking") {
+            // 이미 Stay나 Bust 상태라면 버튼 숨김
+            actionBtns.classList.add('hidden');
+        }
+    });
+
+    // 딜러 카드 렌더링
+    const dCards = document.getElementById('dealer-cards');
+    dCards.innerHTML = '';
+    data.dealerHand.forEach((card, i) => {
+        // 게임 중에는 딜러의 두 번째 카드를 숨김 처리
+        const isHidden = (data.status === "playing" && i === 1);
+        dCards.appendChild(createCardElement(card, isHidden));
+    });
+    reorderCards('dealer-cards');
+    
+    // 모든 유저 턴 종료 시 방장이 딜러 AI 가동
+    if (data.turnIndex >= data.players.length && data.status === "playing") {
+        if (user.uid === data.players[0].uid) {
+            runDealerAI(currentRoomId, data);
+        }
+    }
+}
+
+function updateLobbyUI(players) {
+    playerListMulti.innerHTML = players.map(p => 
+        `<div style="padding:10px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; font-family:'Cormorant Garamond', serif;">
+            <span>${p.name}</span>
+            <span style="color: var(--rose-gold);">${p.uid === user.uid ? "● You" : "● Joined"}</span>
+        </div>`
+    ).join('');
+}
+
+// 실시간 게임 감시
+function listenToRoom(roomId) {
+    onSnapshot(doc(db, "rooms", roomId), async (snap) => {
         const data = snap.data();
         if (!data) return;
 
-        // 1. 모든 플레이어의 카드와 점수를 화면에 렌더링
-        renderMultiTable(data.players, data.dealerHand);
-
-        // 2. 현재 내 차례인지 확인 (turnIndex 활용)
-        const currentPlayer = data.players[data.turnIndex];
-        if (currentPlayer.uid === user.uid && data.status === "playing") {
-            // 내 차례면 버튼 활성화
-            actionBtns.classList.remove('hidden');
-            messageEl.innerText = "It's your turn!";
-        } else {
-            // 남의 차례면 버튼 숨김
-            actionBtns.classList.add('hidden');
-            messageEl.innerText = `${currentPlayer.name}'s turn...`;
-        }
-
-        // 3. 딜러 차례인지 확인 (모든 플레이어 완료 시)
-        if (data.turnIndex === data.players.length) {
-            if (user.uid === data.players[0].uid) { // 방장(첫 번째 플레이어)이 AI 계산 수행
-                runDealerAI(roomId, data);
+        // 1. 대기실 정보 업데이트
+        if (data.status === "waiting") {
+            updateLobbyUI(data.players);
+            if (data.players.length === 3) {
+                // 3명이 모이면 게임 시작 상태로 변경 (방장 권한)
+                if (user.uid === data.players[0].uid) {
+                    await startMultiGame(roomId, data);
+                }
             }
+        } 
+        // 2. 게임 진행 중 업데이트
+        else if (data.status === "playing") {
+            multiLobbyModal.classList.add('hidden');
+            board.classList.remove('hidden');
+            isMultiplayer = true;
+            renderMultiTable(data);
         }
     });
 }
@@ -254,11 +340,19 @@ closeNicknameBtn.onclick = () => {
     }
 };
 
-// 로비 메뉴
+// 싱글 게임 시작 버튼 수정
 document.getElementById('start-game-btn').onclick = () => {
+    isMultiplayer = false;
+    currentRoomId = null;
     lobbySection.classList.add('hidden');
     board.classList.remove('hidden');
-    messageEl.innerText = "Place your bet to start.";
+    
+    // 영역 스위칭
+    document.getElementById('single-player-area').classList.remove('hidden');
+    document.getElementById('multi-player-container').classList.add('hidden');
+    document.querySelector('.bet-controls').classList.remove('hidden');
+    
+    resetSingleGame(); // 기존의 reset 기능을 수행할 함수
 };
 
 document.getElementById('daily-reward-btn').onclick = async () => {
@@ -330,9 +424,9 @@ dealBtn.onclick = async () => {
     playerHand = [deck.pop(), deck.pop()];
     dealerHand = [deck.pop(), deck.pop()];
     
-    document.getElementById('player-cards').innerHTML = '';
+    document.getElementById('player-cards').innerHTML = ''; // 싱글 전용 id
     document.getElementById('dealer-cards').innerHTML = '';
-    
+        
     // 초기 카드 배분 애니메이션
     document.getElementById('player-cards').appendChild(createCardElement(playerHand[0]));
     reorderCards('player-cards');
@@ -352,18 +446,20 @@ dealBtn.onclick = async () => {
 };
 
 document.getElementById('hit-btn').onclick = async () => {
-    if (isGameOver) return;
-    
-    const nextCard = deck.pop();
-    playerHand.push(nextCard);
-    document.getElementById('player-cards').appendChild(createCardElement(nextCard));
-    reorderCards('player-cards');
-    updateUI();
-    
-    // 버스트 시 즉시 종료
-    if (calculateScore(playerHand) > 21) {
-        await sleep(500);
-        endGame('lose');
+    if (isMultiplayer) {
+        await multiHit();
+    } else {
+        if (isGameOver) return;
+        const nextCard = deck.pop();
+        playerHand.push(nextCard);
+        document.getElementById('player-cards').appendChild(createCardElement(nextCard));
+        reorderCards('player-cards');
+        updateUI();
+        
+        if (calculateScore(playerHand) > 21) {
+            await sleep(500);
+            endGame('lose');
+        }
     }
 };
 
@@ -379,7 +475,14 @@ document.getElementById('all-in-btn').onclick = () => {
     }
 };
 
-document.getElementById('stay-btn').onclick = dealerTurn;
+document.getElementById('stay-btn').onclick = async () => {
+    if (isMultiplayer) {
+        await multiStay();
+    } else {
+        if (isGameOver) return;
+        dealerTurn();
+    }
+};
 
 async function dealerTurn() {
     actionBtns.classList.add('hidden');
