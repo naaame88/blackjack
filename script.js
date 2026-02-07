@@ -635,12 +635,14 @@ function getSymbolPositions(num) {
 function reorderCards(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
+    
     const cards = container.children;
-    const overlap = 30; // 카드 사이의 간격
+    const overlap = 25; // 카드 간격
 
     for (let i = 0; i < cards.length; i++) {
         cards[i].style.position = 'absolute';
-        // 중앙 정렬 로직 보정
+        // 너비를 직접 계산하지 않고 calc를 사용하여 중앙에서부터 나열합니다.
+        // 50% 지점에서 카드의 절반(40px)을 빼고, 전체 카드 수에 따른 간격을 보정합니다.
         cards[i].style.left = `calc(50% - 40px + ${(i - (cards.length - 1) / 2) * overlap}px)`;
         cards[i].style.zIndex = i;
     }
