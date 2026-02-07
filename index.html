@@ -23,50 +23,59 @@
                     <span id="display-nickname" style="font-weight: bold; color: var(--deep-rose);">Guest</span>
                     <button id="edit-nickname-btn" class="coquette-btn" style="padding: 2px 8px; font-size: 0.7rem; margin-left: 5px;">Edit</button>
                 </div>
-                
                 <div class="lobby-purse">
-                    <span style="color: var(--rose-gold);">My Gold:</span>
-                    <span id="lobby-balance" style="font-weight: bold; color: var(--deep-rose);">1,000</span>
-                    <span style="color: var(--rose-gold);">G</span>
+                    <span class="label">My Purse:</span>
+                    <span id="lobby-balance" class="value">0</span>
+                    <span class="label">G</span>
                 </div>
-
                 <div class="lobby-menu">
-                    <button id="start-game-btn" class="coquette-btn main">Single Player</button>
-                    <button id="multi-game-btn" class="coquette-btn">Multiplayer Table</button>
-                    <button id="rank-btn" class="coquette-btn">Hall of Fame</button>
+                    <button id="start-game-btn" class="coquette-btn menu-btn">Single Player</button>
+                    <button id="multi-game-btn" class="coquette-btn menu-btn" style="background: var(--soft-pink);">Multiplayer (3 Players)</button>
+                    <button id="rank-btn" class="coquette-btn menu-btn">Ranking (Top 10)</button>
+                </div>
+            </div>
+
+            <div id="multi-lobby-modal" class="modal hidden">
+                <div class="modal-content">
+                    <h2 class="main-title" style="font-size: 1.5rem;">Multiplayer Lobby</h2>
+                    <p id="room-status-msg">Searching for a table...</p>
+                    <div id="player-list-multi" style="margin: 20px 0; text-align: left; max-height: 150px; overflow-y: auto;"></div>
+                    <div style="display: flex; flex-direction: column; gap: 10px; justify-content: center;">
+                        <button id="multi-start-btn" class="coquette-btn main hidden">Start Game</button>
+                        <button id="leave-multi" class="coquette-btn small">Leave</button>
+                    </div>
                 </div>
             </div>
 
             <div id="board" class="hidden">
+                <button id="back-to-lobby" class="coquette-btn small" style="margin-bottom: 10px;">← Back to Lobby</button>
+                
                 <div class="status-bar">
                     <div class="info-box">
-                        <span class="label">Balance</span>
-                        <span id="balance" class="value">1,000</span>
+                        <span class="label">Purse</span>
+                        <span id="balance" class="value">0</span>
                     </div>
                     <div class="info-box">
-                        <span class="label">Current Bet</span>
+                        <span id="bet-label" class="label">Bet</span>
                         <span id="current-bet-display" class="value">0</span>
                     </div>
-                    <button id="back-to-lobby" class="coquette-btn small">Lobby</button>
                 </div>
 
                 <div class="table-area">
                     <div class="dealer-area">
+                        <h3 class="role-title">Dealer</h3>
                         <div id="dealer-cards" class="card-row"></div>
                         <p id="dealer-score" class="score-text"></p>
-                        <h3 class="role-title">Dealer</h3>
                     </div>
+                
+                    <div id="message" class="shabby-msg" style="text-align: center; color: var(--deep-rose); font-style: italic; min-height: 24px;">Place your bet!</div>
+                
+                    <div id="multi-player-container" class="multi-container hidden"></div>
 
-                    <p id="message" style="text-align: center; color: var(--deep-rose); font-style: italic; margin: 10px 0;">Place your bet!</p>
-
-                    <div class="player-container">
-                        <div id="single-player-area" class="player-area">
-                            <div id="player-cards" class="card-row"></div>
-                            <p id="player-score" class="score-text"></p>
-                            <h3 class="role-title" style="font-size: 1.2rem;">You</h3>
-                        </div>
-                    
-                        <div id="multi-player-container" class="multi-container hidden"></div>
+                    <div id="single-player-area" class="player-area">
+                        <div id="player-cards" class="card-row"></div>
+                        <p id="player-score" class="score-text"></p>
+                        <h3 class="role-title" style="font-size: 1.2rem;">You</h3>
                     </div>
                 </div>
 
@@ -86,42 +95,27 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <div id="multi-lobby-modal" class="modal hidden">
-        <div class="modal-content">
-            <h2 class="main-title" style="font-size: 2rem;">Waiting Room</h2>
-            <div id="player-list-multi" style="margin: 15px 0; text-align: left; max-height: 200px; overflow-y: auto;">
+            <div id="rank-modal" class="modal hidden">
+                <div class="modal-content">
+                    <h2 class="main-title" style="font-size: 2rem;">Grand Hall of Fame</h2>
+                    <ul id="rank-list" style="list-style: none; padding: 0;"></ul>
+                    <button id="close-rank" class="coquette-btn small">Return</button>
                 </div>
-            <p style="font-size: 0.8rem; color: var(--rose-gold); margin-bottom: 15px;">Host will start the game when everyone is ready.</p>
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-                <button id="multi-start-btn" class="coquette-btn main hidden">Start Game</button>
-                <button id="leave-multi" class="coquette-btn">Leave Table</button>
+            </div>
+
+            <div id="nickname-modal" class="modal hidden">
+                <div class="modal-content">
+                    <h2 class="main-title" style="font-size: 1.5rem;">Set Nickname</h2>
+                    <input type="text" id="nickname-input" placeholder="Enter nickname..." maxlength="10" style="width: 80%; padding: 8px; margin: 10px 0; border-radius: 10px; border: 1px solid var(--rose-gold);">
+                    <div style="display: flex; gap: 10px; justify-content: center;">
+                        <button id="save-nickname" class="coquette-btn small">Save</button>
+                        <button id="close-nickname" class="coquette-btn small">Cancel</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-
-    <div id="rank-modal" class="modal hidden">
-        <div class="modal-content">
-            <h2 class="main-title" style="font-size: 2rem;">Hall of Fame</h2>
-            <ul id="rank-list"></ul>
-            <button id="close-rank" class="coquette-btn">Close</button>
-        </div>
-    </div>
-
-    <div id="nickname-modal" class="modal hidden">
-        <div class="modal-content">
-            <h2 class="main-title" style="font-size: 2rem;">Welcome</h2>
-            <p style="color: var(--deep-rose);">Please enter your nickname</p>
-            <input type="text" id="nickname-input" maxlength="10" style="width: 80%; padding: 10px; border-radius: 20px; border: 1.5px solid var(--rose-gold); margin: 15px 0; outline: none; text-align: center;">
-            <div style="display: flex; gap: 10px; justify-content: center;">
-                <button id="save-nickname" class="coquette-btn main">Save</button>
-                <button id="close-nickname" class="coquette-btn">Cancel</button>
-            </div>
-        </div>
-    </div>
-
     <script type="module" src="script.js"></script>
 </body>
 </html>

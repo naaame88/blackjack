@@ -26,19 +26,19 @@ const provider = new GoogleAuthProvider();
 
 // --- 전역 변수 ---
 let user = null;
-let players = []; 
 let balance = 0;
-let currentBet = 0; // 싱글용 베팅
-let myMultiBet = 0; // 멀티용 베팅
+let currentBet = 0;
+let myMultiBet = 0;
 let lastClaimDate = "";
 let deck = [], playerHand = [], dealerHand = [];
 let isGameOver = true;
 let currentRoomId = null;
 let isMultiplayer = false;
+let players = [];
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// UI 요소
+// UI 요소 연결
 const loginBtn = document.getElementById('login-btn');
 const authSection = document.getElementById('auth-section');
 const lobbySection = document.getElementById('lobby-section');
@@ -46,380 +46,303 @@ const board = document.getElementById('board');
 const messageEl = document.getElementById('message');
 const dealBtn = document.getElementById('deal-btn');
 const actionBtns = document.getElementById('action-btns');
-const rankBtn = document.getElementById('rank-btn');
-const rankModal = document.getElementById('rank-modal');
-const closeRank = document.getElementById('close-rank');
-const rankList = document.getElementById('rank-list');
-const nicknameModal = document.getElementById('nickname-modal');
-const nicknameInput = document.getElementById('nickname-input');
 const displayNickname = document.getElementById('display-nickname');
-const editNicknameBtn = document.getElementById('edit-nickname-btn');
-const saveNicknameBtn = document.getElementById('save-nickname');
-const closeNicknameBtn = document.getElementById('close-nickname');
-const multiGameBtn = document.getElementById('multi-game-btn');
 const multiLobbyModal = document.getElementById('multi-lobby-modal');
 const playerListMulti = document.getElementById('player-list-multi');
 const multiContainer = document.getElementById('multi-player-container');
 const multiStartBtn = document.getElementById('multi-start-btn');
 const leaveMultiBtn = document.getElementById('leave-multi');
 
-// --- [공통] 초기 세팅 및 유틸리티 ---
-
+// --- 1. 인증 및 유저 데이터 관리 ---
 onAuthStateChanged(auth, async (u) => {
-    if (u) { user = u; loadUserData(); }
+    if (u) {
+        user = u;
+        await loadUserData();
+    } else {
+        authSection.classList.remove('hidden');
+        lobbySection.classList.add('hidden');
+    }
 });
 
 async function loadUserData() {
     const userRef = doc(db, "users", user.uid);
     const snap = await getDoc(userRef);
-    let nickname = "";
-
     if (snap.exists()) {
         const data = snap.data();
         balance = data.money || 0;
         lastClaimDate = data.lastClaimDate || "";
-        nickname = data.displayName || "";
+        displayNickname.innerText = data.displayName || "Guest";
     } else {
         balance = 1000;
         await setDoc(userRef, { money: balance, lastClaimDate: "", displayName: "" });
     }
-
-    if (!nickname) nicknameModal.classList.remove('hidden');
-    else displayNickname.innerText = nickname;
-
     authSection.classList.add('hidden');
     lobbySection.classList.remove('hidden');
-    board.classList.add('hidden');
     checkDailyReward();
     updateUI();
 }
 
+// 닉네임 수정 기능
+document.getElementById('edit-nickname-btn').onclick = () => {
+    document.getElementById('nickname-modal').classList.remove('hidden');
+};
+
+document.getElementById('save-nickname').onclick = async () => {
+    const newName = document.getElementById('nickname-input').value.trim();
+    if (newName) {
+        await updateDoc(doc(db, "users", user.uid), { displayName: newName });
+        displayNickname.innerText = newName;
+        document.getElementById('nickname-modal').classList.add('hidden');
+    }
+};
+
+// 데일리 리워드
+function checkDailyReward() {
+    const today = new Date().toDateString();
+    if (lastClaimDate !== today) {
+        balance += 500;
+        lastClaimDate = today;
+        updateDoc(doc(db, "users", user.uid), { money: balance, lastClaimDate: today });
+        alert("Daily Reward! 500G added.");
+        updateUI();
+    }
+}
+
+// --- 2. 게임 UI 및 베팅 통합 로직 ---
 function updateUI() {
     document.getElementById('balance').innerText = balance.toLocaleString();
     document.getElementById('lobby-balance').innerText = balance.toLocaleString();
-    document.getElementById('current-bet-display').innerText = isMultiplayer ? myMultiBet.toLocaleString() : currentBet.toLocaleString();
-    document.getElementById('player-score').innerText = isMultiplayer ? "" : calculateScore(playerHand);
-    document.getElementById('dealer-score').innerText = (isGameOver || isMultiplayer) ? "" : "?";
-}
-
-function calculateScore(hand) {
-    if (!hand || hand.length === 0) return 0;
-    let score = 0, aces = 0;
-    for (let c of hand) {
-        if (c.r === 'A') { score += 11; aces++; }
-        else if (['J', 'Q', 'K'].includes(c.r)) score += 10;
-        else score += parseInt(c.r);
+    document.getElementById('current-bet-display').innerText = (isMultiplayer ? myMultiBet : currentBet).toLocaleString();
+    if (!isMultiplayer) {
+        document.getElementById('player-score').innerText = calculateScore(playerHand) || "";
+        document.getElementById('dealer-score').innerText = calculateScore(dealerHand) || "";
     }
-    while (score > 21 && aces > 0) { score -= 10; aces--; }
-    return score;
 }
 
-window.adjustBet = (amount) => {
+window.adjustBet = async (amount) => {
     if (!isGameOver && !isMultiplayer) return;
     if (balance >= amount) {
         balance -= amount;
         if (isMultiplayer) {
             myMultiBet += Number(amount);
-            updateMultiBetInDB();
+            await syncMultiBet();
         } else {
             currentBet += Number(amount);
         }
         updateUI();
+    } else {
+        alert("Not enough gold!");
     }
 };
 
-// --- [멀티플레이] 핵심 로직 ---
-
-async function updateMultiBetInDB() {
-    if (!currentRoomId || !user) return;
+async function syncMultiBet() {
+    if (!currentRoomId) return;
     const roomRef = doc(db, "rooms", currentRoomId);
     const snap = await getDoc(roomRef);
-    const data = snap.data();
-    const updatedPlayers = data.players.map(p => p.uid === user.uid ? { ...p, bet: myMultiBet, money: balance } : p);
+    const updatedPlayers = snap.data().players.map(p => 
+        p.uid === user.uid ? { ...p, bet: myMultiBet, money: balance } : p
+    );
     await updateDoc(roomRef, { players: updatedPlayers });
 }
 
-multiGameBtn.onclick = async () => {
-    myMultiBet = 0;
-    multiLobbyModal.classList.remove('hidden');
-    joinOrCreateRoom();
+// --- 3. 싱글 플레이 로직 ---
+dealBtn.onclick = async () => {
+    if (currentBet <= 0) return alert("Bet first!");
+    isGameOver = false;
+    document.getElementById('bet-controls').classList.add('hidden');
+    createDeck(); // 덱 생성 및 셔플
+    playerHand = [deck.pop(), deck.pop()];
+    dealerHand = [deck.pop(), deck.pop()];
+    
+    document.getElementById('player-cards').innerHTML = '';
+    document.getElementById('dealer-cards').innerHTML = '';
+    
+    playerHand.forEach(c => document.getElementById('player-cards').appendChild(createCardElement(c)));
+    dealerHand.forEach((c, i) => document.getElementById('dealer-cards').appendChild(createCardElement(c, i === 1)));
+    
+    reorderCards('player-cards');
+    reorderCards('dealer-cards');
+    
+    actionBtns.classList.remove('hidden');
+    messageEl.innerText = "Hit or Stay?";
+    updateUI();
 };
 
-async function joinOrCreateRoom() {
-    const roomsRef = collection(db, "rooms");
-    const q = query(roomsRef, where("status", "==", "waiting"), limit(1));
-    const snap = await getDocs(q);
+async function runSingleDealerAI() {
+    const hiddenCard = document.getElementById('dealer-hidden-card');
+    if (hiddenCard) hiddenCard.querySelector('.card-inner').classList.add('flipped');
 
-    let roomId;
-    const initialPlayer = { 
-        uid: user.uid, 
-        name: displayNickname.innerText, 
-        money: balance,
-        bet: 0,
-        hand: [], 
-        status: "thinking" 
-    };
+    while (calculateScore(dealerHand) < 17) {
+        dealerHand.push(deck.pop());
+        document.getElementById('dealer-cards').appendChild(createCardElement(dealerHand[dealerHand.length - 1]));
+        reorderCards('dealer-cards');
+        await sleep(500);
+    }
+
+    const ps = calculateScore(playerHand), ds = calculateScore(dealerHand);
+    if (ds > 21 || ps > ds) {
+        messageEl.innerText = "You Win!";
+        balance += currentBet * 2;
+    } else if (ps === ds) {
+        messageEl.innerText = "Push (Draw)";
+        balance += currentBet;
+    } else {
+        messageEl.innerText = "Dealer Wins.";
+    }
+    
+    isGameOver = true;
+    document.getElementById('bet-controls').classList.remove('hidden');
+    await updateDoc(doc(db, "users", user.uid), { money: balance });
+    currentBet = 0;
+    updateUI();
+}
+
+// --- 4. 멀티플레이어 로직 (Firebase) ---
+document.getElementById('multi-game-btn').onclick = () => {
+    myMultiBet = 0;
+    multiLobbyModal.classList.remove('hidden');
+    joinMultiRoom();
+};
+
+async function joinMultiRoom() {
+    const q = query(collection(db, "rooms"), where("status", "==", "waiting"), limit(1));
+    const snap = await getDocs(q);
+    const me = { uid: user.uid, name: displayNickname.innerText, money: balance, bet: 0, hand: [], status: "thinking" };
 
     if (snap.empty) {
-        const newRoom = await addDoc(roomsRef, {
-            status: "waiting",
-            players: [initialPlayer],
-            turnIndex: 0,
-            deck: [], 
-            dealerHand: [],
-            createdAt: serverTimestamp()
+        const res = await addDoc(collection(db, "rooms"), {
+            status: "waiting", players: [me], turnIndex: 0, dealerHand: [], deck: []
         });
-        roomId = newRoom.id;
+        currentRoomId = res.id;
     } else {
-        roomId = snap.docs[0].id;
-        await updateDoc(doc(db, "rooms", roomId), {
-            players: arrayUnion(initialPlayer)
-        });
+        currentRoomId = snap.docs[0].id;
+        await updateDoc(doc(db, "rooms", currentRoomId), { players: arrayUnion(me) });
     }
-    currentRoomId = roomId;
-    listenToRoom(roomId);
+    listenToRoom(currentRoomId);
 }
 
 function listenToRoom(roomId) {
-    const roomRef = doc(db, "rooms", roomId);
-    onSnapshot(roomRef, async (docSnap) => {
-        const data = docSnap.data();
-        if (!data) { exitToLobby(); return; }
-        
-        players = data.players || [];
-        updateHostUI();
+    onSnapshot(doc(db, "rooms", roomId), (snap) => {
+        const data = snap.data();
+        if (!data) return;
+        players = data.players;
 
-        if (data.status === "playing" || data.status === "finished") {
-            lobbySection.classList.add('hidden');
-            multiLobbyModal.classList.add('hidden'); 
-            board.classList.remove('hidden');
+        if (data.status === "waiting") {
+            playerListMulti.innerHTML = players.map(p => `<div>${p.name} (Bet: ${p.bet})</div>`).join('');
+            multiStartBtn.classList.toggle('hidden', players[0].uid !== user.uid);
+        } else if (data.status === "playing" || data.status === "finished") {
             isMultiplayer = true;
+            lobbySection.classList.add('hidden');
+            multiLobbyModal.classList.add('hidden');
+            board.classList.remove('hidden');
             renderMultiTable(data);
-            
-            // 방장이 딜러 AI 실행
-            if (data.status === "playing" && data.turnIndex >= players.length && user.uid === players[0].uid) {
-                await runDealerAI(roomId, data);
-            }
-        } else if (data.status === "waiting") {
-            updateLobbyUI(players);
         }
     });
 }
 
-function updateHostUI() {
-    if (!user || players.length === 0 || !multiStartBtn) return;
-    const isHost = players[0].uid === user.uid;
-    if (isHost && players.length >= 1) multiStartBtn.classList.remove('hidden');
-    else multiStartBtn.classList.add('hidden');
-}
-
-multiStartBtn.onclick = async () => {
-    const allBet = players.every(p => p.bet > 0);
-    if (!allBet) return alert("All players must bet!");
-
-    const roomRef = doc(db, "rooms", currentRoomId);
-    const newDeck = generateDeckArray();
-    const dealerHand = [newDeck.pop(), newDeck.pop()];
-    const updatedPlayers = players.map(p => ({ ...p, hand: [newDeck.pop(), newDeck.pop()], status: "thinking" }));
-
-    await updateDoc(roomRef, {
-        status: "playing",
-        deck: newDeck,
-        dealerHand: dealerHand,
-        players: updatedPlayers,
-        turnIndex: 0
-    });
-};
-
 function renderMultiTable(data) {
-    multiContainer.innerHTML = ''; 
+    multiContainer.innerHTML = '';
     multiContainer.classList.remove('hidden');
     document.getElementById('single-player-area').classList.add('hidden');
     document.getElementById('bet-controls').classList.toggle('hidden', data.status === "playing");
 
-    data.players.forEach((p, index) => {
-        const isMyTurn = data.turnIndex === index && data.status === "playing";
-        const isMe = p.uid === user.uid;
+    data.players.forEach((p, i) => {
+        const isMyTurn = data.turnIndex === i && data.status === "playing";
         const slot = document.createElement('div');
         slot.className = `player-slot ${isMyTurn ? 'active-turn' : ''}`;
-        
-        // 부채꼴 위치 계산 (nth-child 스타일 대신 직접 부여 가능)
         slot.innerHTML = `
-            <div id="cards-player-${index}" class="card-row" style="height:80px;"></div>
+            <div id="cards-p-${i}" class="card-row" style="height:80px;"></div>
             <p class="score-text">${calculateScore(p.hand)}</p>
-            <h3 class="role-title" style="font-size:0.8rem; margin:0;">${p.name}</h3>
-            <div style="font-size:0.7rem; color:var(--deep-rose);">💰${Number(p.money).toLocaleString()} | 🎯${Number(p.bet).toLocaleString()}</div>
-            <div class="status-tag" style="background:${getStatusColor(p.status)}">${p.status.toUpperCase()}</div>
+            <div style="font-size:0.7rem;">${p.name}<br>🎯${p.bet}</div>
+            <div class="status-tag" style="background:${getStatusColor(p.status)}">${p.status}</div>
         `;
-        
         multiContainer.appendChild(slot);
-        p.hand.forEach(card => document.getElementById(`cards-player-${index}`).appendChild(createCardElement(card)));
-        reorderCardsMulti(`cards-player-${index}`);
+        p.hand.forEach(c => document.getElementById(`cards-p-${i}`).appendChild(createCardElement(c)));
+        reorderCards(`cards-p-${i}`);
 
-        if (isMe && isMyTurn && p.status === "thinking") actionBtns.classList.remove('hidden');
-        else if (isMe) actionBtns.classList.add('hidden');
+        if (p.uid === user.uid && isMyTurn) actionBtns.classList.remove('hidden');
+        else if (p.uid === user.uid) actionBtns.classList.add('hidden');
     });
 
     const dCards = document.getElementById('dealer-cards');
     dCards.innerHTML = '';
-    data.dealerHand.forEach((card, i) => {
-        const isHidden = (data.status === "playing" && i === 1);
-        dCards.appendChild(createCardElement(card, isHidden));
-    });
+    data.dealerHand.forEach((c, i) => dCards.appendChild(createCardElement(c, data.status === "playing" && i === 1)));
     reorderCards('dealer-cards');
-    document.getElementById('dealer-score').innerText = data.status === "finished" ? calculateScore(data.dealerHand) : "?";
-
-    // 방장 제어 버튼 (게임 종료 시)
-    if (data.status === "finished" && data.players[0].uid === user.uid) {
-        messageEl.innerHTML = `
-            <button id="rematch-btn" class="coquette-btn small main">Next Round</button>
-            <button id="close-table-btn" class="coquette-btn small">Close Table</button>
-        `;
-        document.getElementById('rematch-btn').onclick = () => multiStartBtn.click();
-        document.getElementById('close-table-btn').onclick = async () => await updateDoc(doc(db, "rooms", currentRoomId), { status: "closed" });
-    }
 }
 
-async function runDealerAI(roomId, data) {
-    let dHand = [...data.dealerHand];
-    let dDeck = [...data.deck];
-    while (calculateScore(dHand) < 17) { dHand.push(dDeck.pop()); await sleep(600); }
-    
-    const finalPlayers = data.players.map(p => {
-        const pScore = calculateScore(p.hand);
-        const dScore = calculateScore(dHand);
-        let res = "lose", factor = 0;
-        if (p.status === "bust") { res = "bust"; factor = 0; }
-        else if (dScore > 21 || pScore > dScore) { res = "win"; factor = 2; }
-        else if (pScore === dScore) { res = "push"; factor = 1; }
-        return { ...p, status: res, winAmount: p.bet * factor };
-    });
-
-    await updateDoc(doc(db, "rooms", roomId), { 
-        dealerHand: dHand, players: finalPlayers, status: "finished" 
-    });
-
-    // 각자 브라우저에서 돈 정산
-    const me = finalPlayers.find(p => p.uid === user.uid);
-    if (me && me.winAmount > 0) {
-        balance += me.winAmount;
-        await updateDoc(doc(db, "users", user.uid), { money: balance });
-        updateUI();
-    }
-}
-
-// --- [멀티플레이] 버튼 액션 ---
-
+// --- 5. 공통 버튼 액션 (Hit/Stay) ---
 document.getElementById('hit-btn').onclick = async () => {
-    if (!isMultiplayer) { /* 기존 싱글 로직 */ return; }
-    const roomRef = doc(db, "rooms", currentRoomId);
-    const snap = await getDoc(roomRef);
-    const data = snap.data();
-    const myIdx = data.turnIndex;
-    if (data.players[myIdx].uid !== user.uid) return;
+    if (isMultiplayer) {
+        const roomRef = doc(db, "rooms", currentRoomId);
+        const snap = await getDoc(roomRef);
+        const data = snap.data();
+        const idx = data.turnIndex;
+        if (data.players[idx].uid !== user.uid) return;
 
-    let updatedPlayers = [...data.players];
-    updatedPlayers[myIdx].hand.push(data.deck.pop());
-    
-    if (calculateScore(updatedPlayers[myIdx].hand) > 21) {
-        updatedPlayers[myIdx].status = "bust";
-        await updateDoc(roomRef, { players: updatedPlayers, turnIndex: myIdx + 1 });
+        let up = [...data.players], dk = [...data.deck];
+        up[idx].hand.push(dk.pop());
+        if (calculateScore(up[idx].hand) > 21) {
+            up[idx].status = "bust";
+            await updateDoc(roomRef, { players: up, deck: dk, turnIndex: idx + 1 });
+        } else {
+            await updateDoc(roomRef, { players: up, deck: dk });
+        }
     } else {
-        await updateDoc(roomRef, { players: updatedPlayers, deck: data.deck });
+        playerHand.push(deck.pop());
+        document.getElementById('player-cards').appendChild(createCardElement(playerHand[playerHand.length - 1]));
+        reorderCards('player-cards');
+        if (calculateScore(playerHand) > 21) {
+            messageEl.innerText = "Bust! You Lose.";
+            endSingleGame();
+        }
+        updateUI();
     }
 };
 
 document.getElementById('stay-btn').onclick = async () => {
-    if (!isMultiplayer) { /* 기존 싱글 로직 */ return; }
-    const roomRef = doc(db, "rooms", currentRoomId);
-    const snap = await getDoc(roomRef);
-    const myIdx = snap.data().turnIndex;
-    if (snap.data().players[myIdx].uid !== user.uid) return;
-
-    let updatedPlayers = [...snap.data().players];
-    updatedPlayers[myIdx].status = "stay";
-    await updateDoc(roomRef, { players: updatedPlayers, turnIndex: myIdx + 1 });
-};
-
-leaveMultiBtn.onclick = async () => {
-    if (!currentRoomId) return;
-    const roomRef = doc(db, "rooms", currentRoomId);
-    const snap = await getDoc(roomRef);
-    if (snap.exists()) {
-        const updated = snap.data().players.filter(p => p.uid !== user.uid);
-        if (updated.length === 0) await deleteDoc(roomRef);
-        else await updateDoc(roomRef, { players: updated });
+    if (isMultiplayer) {
+        const roomRef = doc(db, "rooms", currentRoomId);
+        const snap = await getDoc(roomRef);
+        const idx = snap.data().turnIndex;
+        if (snap.data().players[idx].uid !== user.uid) return;
+        let up = [...snap.data().players];
+        up[idx].status = "stay";
+        await updateDoc(roomRef, { players: up, turnIndex: idx + 1 });
+    } else {
+        actionBtns.classList.add('hidden');
+        runSingleDealerAI();
     }
-    exitToLobby();
 };
 
-function exitToLobby() {
-    isMultiplayer = false;
-    currentRoomId = null;
-    board.classList.add('hidden');
-    lobbySection.classList.remove('hidden');
-    multiLobbyModal.classList.add('hidden');
-    updateUI();
+// --- 6. 유틸리티 함수들 ---
+function createDeck() {
+    const suits = ['♠', '♥', '♦', '♣'], ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+    deck = [];
+    for (let s of suits) for (let r of ranks) deck.push({ s, r });
+    deck.sort(() => Math.random() - 0.5);
 }
 
-// --- [싱글플레이 및 기타] 기존 기능 보존 ---
-
-dealBtn.onclick = async () => {
-    if (currentBet <= 0) return alert("Please place a bet!");
-    isGameOver = false;
-    document.getElementById('bet-controls').classList.add('hidden');
-    createDeck();
-    playerHand = [deck.pop(), deck.pop()];
-    dealerHand = [deck.pop(), deck.pop()];
-    document.getElementById('player-cards').innerHTML = ''; 
-    document.getElementById('dealer-cards').innerHTML = '';
-    
-    // 카드 배분 애니메이션
-    for(let i=0; i<2; i++) {
-        document.getElementById('player-cards').appendChild(createCardElement(playerHand[i]));
-        reorderCards('player-cards');
-        await sleep(300);
-        document.getElementById('dealer-cards').appendChild(createCardElement(dealerHand[i], i===1));
-        reorderCards('dealer-cards');
-        await sleep(300);
-    }
-    updateUI();
-    actionBtns.classList.remove('hidden');
-    messageEl.innerText = "Hit or Stay?";
-};
-
-// ... (랭킹, 닉네임, 데일리 리워드 등 나머지 코드는 기존과 동일) ...
-
-function getStatusColor(status) {
-    if (status === 'win') return '#4caf50';
-    if (status === 'bust' || status === 'lose') return '#f44336';
-    if (status === 'push') return '#ff9800';
-    return 'var(--rose-gold)';
+function calculateScore(hand) {
+    if (!hand || hand.length === 0) return 0;
+    let s = 0, a = 0;
+    hand.forEach(c => {
+        if (c.r === 'A') { s += 11; a++; }
+        else if (['J', 'Q', 'K'].includes(c.r)) s += 10;
+        else s += parseInt(c.r);
+    });
+    while (s > 21 && a > 0) { s -= 10; a--; }
+    return s;
 }
 
-function generateDeckArray() {
-    const suits = ['♠', '♥', '♦', '♣'];
-    const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-    let d = [];
-    for (let s of suits) for (let r of ranks) d.push({ s, r });
-    return d.sort(() => Math.random() - 0.5);
-}
-
-function createCardElement(card, isHidden = false) {
-    const container = document.createElement('div');
-    container.className = 'card'; 
-    const inner = document.createElement('div');
-    inner.className = 'card-inner';
-    if (isHidden) container.id = 'dealer-hidden-card';
-    const front = document.createElement('div');
-    front.className = 'card-front';
-    front.style.color = (card.s === '♥' || card.s === '♦') ? 'var(--rose-gold)' : 'var(--deep-rose)';
-    front.innerHTML = `<div style="position:absolute; top:2px; left:2px; font-size:0.6rem;">${card.r}${card.s}</div><div style="font-size:1.5rem;">${card.s}</div>`;
-    const back = document.createElement('div'); back.className = 'card-back';
-    inner.appendChild(front); inner.appendChild(back);
-    container.appendChild(inner);
-    if (!isHidden) setTimeout(() => inner.classList.add('flipped'), 50);
-    return container;
+function createCardElement(card, isHidden) {
+    const div = document.createElement('div');
+    div.className = 'card';
+    if (isHidden) div.id = 'dealer-hidden-card';
+    div.innerHTML = `<div class="card-inner ${isHidden ? '' : 'flipped'}">
+        <div class="card-front" style="color:${(card.s === '♥' || card.s === '♦') ? 'var(--rose-gold)' : 'var(--deep-rose)'}">
+            <div style="position:absolute;top:2px;left:2px;font-size:0.6rem;">${card.r}${card.s}</div>${card.s}
+        </div><div class="card-back"></div></div>`;
+    return div;
 }
 
 function reorderCards(id) {
@@ -427,42 +350,73 @@ function reorderCards(id) {
     for (let i = 0; i < c.length; i++) {
         c[i].style.position = 'absolute';
         c[i].style.left = `calc(50% - 30px + ${(i - (c.length - 1) / 2) * 20}px)`;
-        c[i].style.zIndex = i;
     }
 }
 
-function reorderCardsMulti(id) {
-    const c = document.getElementById(id).children;
-    for (let i = 0; i < c.length; i++) {
-        c[i].style.position = 'absolute';
-        c[i].style.left = `calc(50% - 25px + ${(i - (c.length - 1) / 2) * 15}px)`;
-        c[i].style.zIndex = i;
-    }
+function getStatusColor(s) {
+    if (s === 'win') return '#4caf50';
+    if (s === 'bust' || s === 'lose') return '#f44336';
+    return 'var(--rose-gold)';
 }
 
-// 랭킹 시스템 (NaN 방지 포함)
-rankBtn.onclick = () => { rankModal.classList.remove('hidden'); loadRankings(); };
-closeRank.onclick = () => rankModal.classList.add('hidden');
-function loadRankings() {
+function endSingleGame() {
+    isGameOver = true;
+    actionBtns.classList.add('hidden');
+    document.getElementById('bet-controls').classList.remove('hidden');
+    currentBet = 0;
+}
+
+// 랭킹 시스템 (Hall of Fame)
+document.getElementById('rank-btn').onclick = async () => {
     const q = query(collection(db, "users"), orderBy("money", "desc"), limit(10));
-    onSnapshot(q, (snap) => {
-        rankList.innerHTML = '';
-        snap.forEach((doc, i) => {
-            const data = doc.data();
-            const li = document.createElement('li');
-            li.innerHTML = `<span><strong>${i+1}.</strong> ${data.displayName || "Guest"}</span><span>${(Number(data.money)||0).toLocaleString()} G</span>`;
-            rankList.appendChild(li);
-        });
+    const snap = await getDocs(q);
+    const list = document.getElementById('rank-list');
+    list.innerHTML = '';
+    snap.forEach((doc, i) => {
+        const d = doc.data();
+        list.innerHTML += `<li>${i + 1}. ${d.displayName || 'Guest'} - ${d.money.toLocaleString()}G</li>`;
     });
+    document.getElementById('rank-modal').classList.remove('hidden');
+};
+
+document.getElementById('close-rank').onclick = () => document.getElementById('rank-modal').classList.add('hidden');
+
+// 로비로 돌아가기
+function exitToLobby() {
+    isMultiplayer = false;
+    currentRoomId = null;
+    board.classList.add('hidden');
+    lobbySection.classList.remove('hidden');
+    multiLobbyModal.classList.add('hidden');
 }
 
-// 초기 싱글 게임 리셋
-function resetSingleGame() {
-    isGameOver = true; playerHand = []; dealerHand = []; currentBet = 0;
-    document.getElementById('player-cards').innerHTML = '';
-    document.getElementById('dealer-cards').innerHTML = '';
-    updateUI();
-}
+document.getElementById('back-to-lobby').onclick = exitToLobby;
+loginBtn.onclick = () => signInWithPopup(auth, provider);
+
+// 멀티플레이 시작 (방장전용)
+multiStartBtn.onclick = async () => {
+    if (players.every(p => p.bet > 0)) {
+        createDeck();
+        const dHand = [deck.pop(), deck.pop()];
+        const updatedPlayers = players.map(p => ({ ...p, hand: [deck.pop(), deck.pop()], status: "thinking" }));
+        await updateDoc(doc(db, "rooms", currentRoomId), {
+            status: "playing", deck: deck, dealerHand: dHand, players: updatedPlayers, turnIndex: 0
+        });
+    } else {
+        alert("Wait for all players to bet!");
+    }
+};
+
+leaveMultiBtn.onclick = async () => {
+    if (currentRoomId) {
+        const roomRef = doc(db, "rooms", currentRoomId);
+        const snap = await getDoc(roomRef);
+        const leftPlayers = snap.data().players.filter(p => p.uid !== user.uid);
+        if (leftPlayers.length === 0) await deleteDoc(roomRef);
+        else await updateDoc(roomRef, { players: leftPlayers });
+    }
+    exitToLobby();
+};
 
 document.getElementById('start-game-btn').onclick = () => {
     isMultiplayer = false;
@@ -470,23 +424,6 @@ document.getElementById('start-game-btn').onclick = () => {
     board.classList.remove('hidden');
     document.getElementById('single-player-area').classList.remove('hidden');
     document.getElementById('multi-player-container').classList.add('hidden');
-    resetSingleGame(); 
+    isGameOver = true;
+    updateUI();
 };
-
-document.getElementById('back-to-lobby').onclick = () => exitToLobby();
-
-function createDeck() {
-    const suits = ['♠', '♥', '♦', '♣'];
-    const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-    deck = [];
-    for (let s of suits) for (let r of ranks) deck.push({ s, r });
-    deck.sort(() => Math.random() - 0.5);
-}
-
-function updateLobbyUI(list) {
-    playerListMulti.innerHTML = list.map(p => 
-        `<div style="padding:10px; border-bottom:1px solid #eee; display:flex; justify-content:space-between;">
-            <span>${p.name} (${(Number(p.money)||0).toLocaleString()}G)</span>
-            <span style="color:var(--rose-gold);">${p.uid === user.uid ? "● You" : "● Joined"}</span>
-        </div>`).join('');
-}

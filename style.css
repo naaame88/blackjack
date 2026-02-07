@@ -28,18 +28,28 @@ body {
     box-shadow: 0 10px 30px rgba(216, 167, 177, 0.3);
 }
 
-/* --- 타이틀 및 텍스트 --- */
+/* --- 텍스트 스타일 --- */
 .main-title {
     font-family: 'Pinyon Script', cursive;
     color: var(--deep-rose);
-    text-align: center; font-size: 3.5rem; margin: 10px 0;
+    text-align: center;
+    font-size: 3.5rem;
+    margin: 10px 0;
 }
 
 .role-title {
     font-family: 'Great Vibes', cursive;
     color: var(--rose-gold);
-    font-size: 1.5rem; margin-bottom: 5px;
     text-align: center;
+    font-size: 1.5rem;
+    margin: 5px 0;
+}
+
+.score-text {
+    font-weight: bold;
+    color: var(--deep-rose);
+    font-size: 0.9rem;
+    margin: 5px 0;
 }
 
 /* --- 버튼 스타일 --- */
@@ -47,11 +57,13 @@ body {
     background: var(--ivory);
     color: var(--deep-rose);
     border: 1.5px solid var(--rose-gold);
-    padding: 10px 20px; border-radius: 25px;
+    padding: 10px 20px;
+    border-radius: 25px;
     font-family: 'Cormorant Garamond', serif;
-    font-weight: 600; cursor: pointer;
+    font-weight: 600;
+    cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 10px rgba(216, 167, 177, 0.2);
+    box-shadow: 0 2px 5px rgba(216, 167, 177, 0.2);
 }
 
 .coquette-btn:hover {
@@ -59,102 +71,154 @@ body {
     transform: translateY(-2px);
 }
 
-.coquette-btn.main { background: var(--rose-gold); color: white; border: none; }
-.coquette-btn.small { padding: 5px 12px; font-size: 0.8rem; }
-
-/* --- 로비 및 유저 정보 --- */
-.lobby-menu { display: flex; flex-direction: column; gap: 10px; }
-.lobby-purse {
-    background: white; padding: 15px; border-radius: 20px;
-    margin-bottom: 20px; border: 1px solid var(--soft-pink);
-    display: flex; justify-content: center; gap: 10px;
+.coquette-btn.main {
+    background: var(--rose-gold);
+    color: white;
+    border: none;
+    font-size: 1.1rem;
+    padding: 12px 30px;
 }
 
-/* --- [핵심] 게임 보드 및 부채꼴 테이블 --- */
+.coquette-btn.small {
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    border-radius: 15px;
+}
+
+.menu-btn {
+    width: 100%;
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+}
+
+/* --- 로비 및 정보 섹션 --- */
+.lobby-purse {
+    background: white;
+    padding: 15px;
+    border-radius: 20px;
+    text-align: center;
+    margin-bottom: 20px;
+    border: 1px solid var(--soft-pink);
+}
+
+.lobby-purse .label { color: var(--rose-gold); font-size: 0.9rem; }
+.lobby-purse .value { font-size: 1.5rem; font-weight: bold; color: var(--deep-rose); }
+
+.status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    padding: 10px 15px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+    border: 1px solid var(--soft-pink);
+}
+
+.info-box { display: flex; flex-direction: column; align-items: center; }
+.info-box .label { font-size: 0.6rem; color: var(--rose-gold); text-transform: uppercase; }
+.info-box .value { font-size: 0.9rem; font-weight: bold; color: var(--deep-rose); }
+
+/* --- 테이블 및 카드 레이아웃 --- */
 .table-area {
     background: rgba(255, 255, 255, 0.5);
-    border-radius: 150px 150px 40px 40px; /* 테이블 느낌의 라운드 */
-    padding: 20px; border: 1px solid var(--soft-pink);
-    min-height: 420px; position: relative;
-    margin: 15px 0;
+    border-radius: 100px 100px 40px 40px;
+    padding: 20px;
+    border: 1px solid var(--soft-pink);
+    min-height: 420px;
+    position: relative;
     overflow: hidden;
 }
 
-.dealer-area { text-align: center; margin-bottom: 30px; }
-
-/* 플레이어 컨테이너 (부채꼴 배치를 위한 부모) */
-.multi-container {
-    position: absolute;
-    bottom: 20px; left: 0;
-    width: 100%; height: 260px;
-}
-
-/* 플레이어 개별 슬롯 */
-.player-slot {
-    position: absolute;
-    width: 110px;
-    text-align: center;
-    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* 부채꼴 위치 지정 (3명 기준) */
-.player-slot:nth-child(1) { left: 5%; bottom: 35%; transform: rotate(-20deg); }
-.player-slot:nth-child(2) { left: 50%; bottom: 10%; transform: translateX(-50%); }
-.player-slot:nth-child(3) { right: 5%; bottom: 35%; transform: rotate(20deg); }
-
-.player-slot.active-turn {
-    filter: drop-shadow(0 0 12px var(--rose-gold));
-    transform: scale(1.1) rotate(0deg) translateY(-10px);
-    z-index: 10;
-}
-
-/* --- 카드 디자인 --- */
 .card-row {
-    display: flex; justify-content: center; height: 110px;
-    position: relative; margin: 10px 0;
-}
-
-.card {
-    width: 80px; height: 110px;
-    perspective: 1000px;
-}
-
-/* 멀티플레이용 작은 카드 */
-.player-slot .card { width: 65px; height: 90px; }
-
-.card-inner {
-    width: 100%; height: 100%;
-    transition: transform 0.6s;
-    transform-style: preserve-3d;
+    display: flex;
+    justify-content: center;
+    height: 110px;
     position: relative;
 }
 
-.card-inner.flipped { transform: rotateY(180deg); }
+/* 카드 기본 스타일 및 애니메이션 */
+.card {
+    width: 75px;
+    height: 105px;
+    perspective: 1000px;
+    transition: all 0.5s ease;
+}
+
+.card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-style: preserve-3d;
+}
+
+.card-inner.flipped {
+    transform: rotateY(180deg);
+}
 
 .card-front, .card-back {
-    position: absolute; width: 100%; height: 100%;
-    backface-visibility: hidden; border-radius: 10px;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
 .card-front {
-    background: white; transform: rotateY(180deg);
-    display: flex; flex-direction: column; justify-content: center; align-items: center;
-    border: 1px solid #eee;
+    background: white;
+    color: var(--deep-rose);
+    transform: rotateY(180deg);
+    border: 1px solid #f0f0f0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.8rem;
+    font-weight: bold;
 }
 
 .card-back {
-    background: var(--rose-gold);
-    background-image: radial-gradient(var(--soft-pink) 1px, transparent 1px);
+    background-color: var(--rose-gold);
+    background-image: radial-gradient(circle, #ffffff 1px, transparent 1px);
     background-size: 10px 10px;
-    border: 2px solid white;
+    border: 3px solid white;
 }
 
-/* --- 모달 시스템 --- */
+/* --- 멀티플레이어 전용 레이아웃 (부채꼴) --- */
+.multi-container {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    width: 100%;
+    height: 230px;
+    pointer-events: none;
+}
+
+.player-slot {
+    position: absolute;
+    width: 110px;
+    text-align: center;
+    transition: all 0.5s ease;
+}
+
+/* 3인 기준 부채꼴 배치 */
+.player-slot:nth-child(1) { left: 5%; bottom: 40px; transform: rotate(-15deg); }
+.player-slot:nth-child(2) { left: 50%; bottom: 10px; transform: translateX(-50%); }
+.player-slot:nth-child(3) { right: 5%; bottom: 40px; transform: rotate(15deg); }
+
+.player-slot.active-turn {
+    filter: drop-shadow(0 0 10px var(--rose-gold));
+    transform: scale(1.1) ${props => props.rotate || ''}; /* JS에서 덮어쓰기 가능 */
+}
+
+/* --- 모달 및 UI 유틸리티 --- */
 .modal {
-    position: fixed; top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(142, 93, 103, 0.5);
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.4);
     display: flex; justify-content: center; align-items: center;
     z-index: 2000;
 }
@@ -168,35 +232,32 @@ body {
     text-align: center;
 }
 
-/* --- 점수, 상태바 및 기타 --- */
-.status-bar {
-    display: flex; justify-content: space-between; align-items: center;
-    background: white; padding: 10px 15px; border-radius: 20px;
-    margin-bottom: 10px; border: 1px solid var(--soft-pink);
-}
-
-.info-box { display: flex; flex-direction: column; align-items: center; }
-.info-box .label { font-size: 0.6rem; color: var(--rose-gold); text-transform: uppercase; }
-.info-box .value { font-size: 0.9rem; font-weight: bold; color: var(--deep-rose); }
-
-.score-text { font-weight: bold; color: var(--deep-rose); font-size: 0.9rem; margin: 5px 0; }
-
 .status-tag {
-    font-size: 0.6rem; padding: 3px 8px; border-radius: 12px;
-    color: white; display: inline-block; margin-top: 5px;
-    font-weight: bold; text-transform: uppercase;
+    font-size: 0.6rem;
+    padding: 3px 8px;
+    border-radius: 12px;
+    color: white;
+    display: inline-block;
+    margin-top: 5px;
+    text-transform: uppercase;
 }
 
 .controls { margin-top: 10px; }
 .bet-controls, .action-controls {
-    display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;
-}
-
-#rank-list { margin: 15px 0; padding: 0; list-style: none; }
-#rank-list li {
-    display: flex; justify-content: space-between;
-    padding: 10px 5px; border-bottom: 1px dashed var(--soft-pink);
-    color: var(--deep-rose);
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 .hidden { display: none !important; }
+
+/* 애니메이션 */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.player-slot, .card {
+    animation: fadeIn 0.5s ease forwards;
+}
