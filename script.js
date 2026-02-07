@@ -128,23 +128,26 @@ function updateUI() {
 
 // 1. adjustBet 함수 보강 (약 100라인 근처)
 window.adjustBet = async (amount) => {
-    if (!isGameOver && !isMultiplayer) return;
+    // 로비 상태이거나 싱글 게임 종료 상태일 때만 작동
+    if (!isGameOver) return; 
     
     const numericAmount = Number(amount);
     if (balance >= numericAmount) {
         balance -= numericAmount;
+        
         if (isMultiplayer) {
             myMultiBet += numericAmount;
-            // 로비 내 점수 실시간 텍스트 업데이트
-            const display = document.getElementById('multi-bet-display');
-            if(display) display.innerText = myMultiBet.toLocaleString() + "G";
-            await syncMultiBet(); // DB 동기화
+            // 로비에 있는 금액 표시 요소 업데이트
+            const mDisplay = document.getElementById('multi-bet-display');
+            if (mDisplay) mDisplay.innerText = myMultiBet.toLocaleString() + "G";
+            
+            await syncMultiBet(); // DB에 내 베팅 정보 전송
         } else {
             currentBet += numericAmount;
         }
-        updateUI();
+        updateUI(); // 상단 바 잔액 업데이트
     } else {
-        alert("Not enough gold!");
+        alert("잔액이 부족합니다!");
     }
 };
 
