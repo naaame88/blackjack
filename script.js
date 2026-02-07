@@ -110,18 +110,27 @@ function checkDailyReward() {
 
 // --- 2. 게임 UI 및 베팅 통합 로직 ---
 function updateUI() {
-    document.getElementById('balance').innerText = balance.toLocaleString();
-    document.getElementById('lobby-balance').innerText = balance.toLocaleString();
-    document.getElementById('current-bet-display').innerText = (isMultiplayer ? myMultiBet : currentBet).toLocaleString();
+    // 잔액 표시
+    document.getElementById('balance').innerText = (Number(balance) || 0).toLocaleString();
+    document.getElementById('lobby-balance').innerText = (Number(balance) || 0).toLocaleString();
+    
+    // 현재 배팅액 표시 (멀티/싱글 구분)
+    const betVal = isMultiplayer ? myMultiBet : currentBet;
+    document.getElementById('current-bet-display').innerText = (Number(betVal) || 0).toLocaleString();
+
+    // 싱글 플레이어 전용 UI 업데이트
     if (!isMultiplayer) {
-        document.getElementById('player-score').innerText = calculateScore(playerHand) || "";
+        // 플레이어 점수 (카드가 있을 때만 계산)
+        const pScore = playerHand.length > 0 ? calculateScore(playerHand) : 0;
+        document.getElementById('player-score').innerText = pScore > 0 ? pScore : "";
         
-        // 수정: 게임 중(isGameOver가 false)일 때는 딜러 점수를 숨깁니다.
+        // 딜러 점수 (게임 중에는 ?, 끝나면 숫자)
         const dealerScoreEl = document.getElementById('dealer-score');
         if (isGameOver) {
-            dealerScoreEl.innerText = calculateScore(dealerHand) || "";
+            const dScore = dealerHand.length > 0 ? calculateScore(dealerHand) : 0;
+            dealerScoreEl.innerText = dScore > 0 ? dScore : "";
         } else {
-            dealerScoreEl.innerText = "?"; // 게임 중에는 물음표로 표시
+            dealerScoreEl.innerText = "?"; 
         }
     }
 }
@@ -181,15 +190,22 @@ async function syncMultiBet() {
 // --- 3. 싱글 플레이 로직 ---
 dealBtn.onclick = async () => {
     if (currentBet <= 0) return alert("Bet first!");
+    
+    // 상태 초기화
+    isMultiplayer = false; // 싱글 플레이임을 확실히 함
     isGameOver = false;
+    
     document.getElementById('bet-controls').classList.add('hidden');
-    createDeck(); // 덱 생성 및 셔플
+    
+    createDeck(); 
     playerHand = [deck.pop(), deck.pop()];
     dealerHand = [deck.pop(), deck.pop()];
     
+    // 카드 화면 초기화
     document.getElementById('player-cards').innerHTML = '';
     document.getElementById('dealer-cards').innerHTML = '';
     
+    // 카드 요소 생성 및 추가
     playerHand.forEach(c => document.getElementById('player-cards').appendChild(createCardElement(c)));
     dealerHand.forEach((c, i) => document.getElementById('dealer-cards').appendChild(createCardElement(c, i === 1)));
     
@@ -315,14 +331,11 @@ function renderMultiTable(data) {
         } else {
             slot.style.transform = baseTransform;
         }
-        
         const currentScore = calculateScore(p.hand);
-        slot.innerHTML = `
-        <div id="cards-p-${i}" class="card-row" style="height:80px;"></div>
-        <div style="font-size:0.8rem; font-weight:bold; color:var(--deep-rose); margin-top:5px;">${p.name}</div>
-        <div class="score-text" style="margin: 2px 0;">Score: ${currentScore}</div>
-        <div style="font-size:0.7rem; color:var(--rose-gold);">Bet: ${p.bet}G</div>
-        <div class="status-tag" style="background:${getStatusColor(p.status)}">${p.status}</div>`;
+        slot.innerHTML = `<div id="cards-p-${i}" class="card-row" style="height:80px;"></div><div style="font-size:0.8rem; font-weight:bold; color:var(--deep-rose); margin-top:5px;">${p.name}</div>
+        <div class="score-text" style="margin: 2px 0;">Score: ${currentScore}</div> <div style="font-size:0.7rem; color:var(--rose-gold);">Bet: ${p.bet}G</div>
+        <div class="status-tag" style="background:${getStatusColor(p.status)}">${p.status}</div>
+`;
         multiContainer.appendChild(slot);
         p.hand.forEach(c => document.getElementById(`cards-p-${i}`).appendChild(createCardElement(c)));
         reorderCards(`cards-p-${i}`);
@@ -518,19 +531,18 @@ document.getElementById('start-game-btn').onclick = () => {
     updateUI();
 };
 
-// 파일 하단에 이 함수를 추가해 주세요!
 async function runMultiDealerAI(data) {
     const roomRef = doc(db, "rooms", currentRoomId);
     let dk = [...data.deck];
     let dHand = [...data.dealerHand];
 
-    // 딜러 규칙: 17점 미만이면 카드를 계속 뽑음
+    // 딜러는 17점 미만일 때 카드를 계속 뽑음
     while (calculateScore(dHand) < 17) {
         dHand.push(dk.pop());
         await sleep(700); 
     }
 
-    // 최종 결과 계산
+    // 모든 플레이어 승패 판정
     const finalPlayers = data.players.map(p => {
         const ps = calculateScore(p.hand);
         const ds = calculateScore(dHand);
@@ -544,7 +556,7 @@ async function runMultiDealerAI(data) {
         return { ...p, status: finalStatus };
     });
 
-    // DB 업데이트: 상태를 finished로 변경하여 카드와 점수 공개
+    // 방 상태를 finished로 바꿔서 모든 플레이어에게 결과 공개
     await updateDoc(roomRef, {
         status: "finished",
         deck: dk,
