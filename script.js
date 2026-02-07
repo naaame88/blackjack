@@ -1,6 +1,13 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { 
+    initializeApp 
+} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import { 
+    getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { 
+    getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, orderBy, 
+    limit, onSnapshot, where, addDoc, serverTimestamp, arrayUnion, getDocs 
+} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyC8k8GO0wjskjMiInIlB0Ay_qC58PVs2W4",
@@ -307,7 +314,7 @@ window.adjustBet = (amount) => {
     if (!isGameOver) return;
     if (balance >= amount) {
         balance = balance - amount;
-        currentBet = currentBet + amount;
+        currentBet += Number(amount);
         updateUI();
     }
 };
