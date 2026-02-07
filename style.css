@@ -264,3 +264,21 @@ body {
 .player-slot, .card {
     animation: fadeIn 0.5s ease forwards;
 }
+
+/* style.css에 추가 또는 수정 */
+.multi-bet-section {
+    background: white;
+    padding: 15px;
+    border-radius: 20px;
+    border: 1px solid var(--soft-pink);
+    margin: 15px 0; /* 위아래 버튼과의 간격 확보 */
+}
+
+.bet-controls button {
+    min-width: 70px; /* 버튼 크기 통일 */
+}
+
+.lobby-menu button {
+    margin-top: 8px; /* 버튼 사이의 세로 간격 */
+    width: 100%;    /* 버튼 너비 통일 */
+}

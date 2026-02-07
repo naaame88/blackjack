@@ -126,19 +126,37 @@ function updateUI() {
     }
 }
 
+// 1. adjustBet 함수 보강 (약 100라인 근처)
 window.adjustBet = async (amount) => {
+    if (!isGameOver && !isMultiplayer) return;
+    
     const numericAmount = Number(amount);
     if (balance >= numericAmount) {
         balance -= numericAmount;
         if (isMultiplayer) {
             myMultiBet += numericAmount;
-            // 중요: 베팅 직후 DB에 즉시 반영하여 방장이 알 수 있게 함
-            await syncMultiBet();
+            // 로비 내 점수 실시간 텍스트 업데이트
+            const display = document.getElementById('multi-bet-display');
+            if(display) display.innerText = myMultiBet.toLocaleString() + "G";
+            await syncMultiBet(); // DB 동기화
         } else {
             currentBet += numericAmount;
         }
         updateUI();
+    } else {
+        alert("Not enough gold!");
     }
+};
+
+// 2. 멀티플레이어 베팅 초기화 함수 추가
+window.resetMultiBet = async () => {
+    if (!isMultiplayer) return;
+    balance += myMultiBet; // 베팅했던 돈을 다시 잔액으로
+    myMultiBet = 0;
+    const display = document.getElementById('multi-bet-display');
+    if(display) display.innerText = "0G";
+    await syncMultiBet();
+    updateUI();
 };
 
 async function syncMultiBet() {
