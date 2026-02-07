@@ -286,13 +286,22 @@ function listenToRoom(roomId) {
         players = data.players;
 
         if (data.status === "waiting") {
-            playerListMulti.innerHTML = players.map(p => `<div>${p.name} (Bet: ${p.bet})</div>`).join('');
-            // 방장(players[0])이고, 인원이 2명 이상일 때만 버튼을 보여줍니다.
-            if (players[0].uid === user.uid && players.length >= 2) {
+            isGameOver = true; // 베팅 가능 상태로 변경
+            myMultiBet = 0;    // 내 로컬 베팅 변수 초기화
+            
+            playerListMulti.innerHTML = players.map(p => 
+                `<div>${p.name}: ${p.bet > 0 ? `✅ ${p.bet}G` : '⏳ Betting...'}</div>`
+            ).join('');
+        
+            const isHost = players[0].uid === user.uid;
+            const allBetted = players.every(p => p.bet > 0);
+        
+            if (isHost && players.length >= 2) {
                 multiStartBtn.classList.remove('hidden');
-                multiStartBtn.innerText = `Start Game (${players.length}/3)`; // 현재 인원 표시 서비스
-            } else {
-                    multiStartBtn.classList.add('hidden');
+                // 모두 베팅했을 때만 버튼을 강조하거나 활성화
+                multiStartBtn.disabled = !allBetted;
+                multiStartBtn.innerText = allBetted ? "Start Next Round" : "Waiting for Bets...";
+                multiStartBtn.style.opacity = allBetted ? "1" : "0.5";
             }
         } else if (data.status === "playing" || data.status === "finished") {
             isMultiplayer = true;
@@ -547,12 +556,13 @@ async function runMultiDealerAI(data) {
         const ps = calculateScore(p.hand);
         const ds = calculateScore(dHand);
         let finalStatus = "";
-
+    
         if (ps > 21) finalStatus = "bust";
         else if (ds > 21 || ps > ds) finalStatus = "win";
         else if (ps === ds) finalStatus = "push";
         else finalStatus = "lose";
-
+    
+        // 중요: status는 결과로 보여주되, 다음 게임을 위해 내부 데이터 구조를 정리할 준비를 합니다.
         return { ...p, status: finalStatus };
     });
 
@@ -562,5 +572,16 @@ async function runMultiDealerAI(data) {
         deck: dk,
         dealerHand: dHand,
         players: finalPlayers
+    });
+    
+    // 일정 시간(결과 확인 시간) 후 베팅 가능 상태(waiting)로 다시 전환
+    await sleep(4000); // 5초간 결과 보여주기
+    const resetPlayers = finalPlayers.map(p => ({ ...p, bet: 0, hand: [], status: "thinking" }));
+    await updateDoc(roomRef, {
+        status: "waiting",
+        players: resetPlayers,
+        turnIndex: 0,
+        dealerHand: [],
+        deck: []
     });
 }
