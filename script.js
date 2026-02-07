@@ -416,41 +416,35 @@ window.adjustBet = (amount) => {
 dealBtn.onclick = async () => {
     if (currentBet <= 0) return alert("Please place a bet!");
     isGameOver = false;
-    
-    // 싱글 플레이 영역 확실히 표시 및 배팅 컨트롤 숨기기
-    document.getElementById('single-player-area').classList.remove('hidden');
-    document.getElementById('multi-player-container').classList.add('hidden');
+
+    // 1. 배팅 컨트롤 숨기기
     document.getElementById('bet-controls').classList.add('hidden');
     
-    // 덱 생성 및 초기화
-    createDeck(); 
+    // 2. 덱 생성 및 카드 배분
+    createDeck();
     playerHand = [deck.pop(), deck.pop()];
     dealerHand = [deck.pop(), deck.pop()];
-    
-    // 기존 카드 제거
+
+    // 3. 정확한 ID 영역 비우기
     document.getElementById('player-cards').innerHTML = ''; 
     document.getElementById('dealer-cards').innerHTML = '';
-        
-    // 카드 배분 애니메이션 및 위치 재정렬
-    // 1번째 플레이어 카드
+
+    // 4. 카드 추가 (reorderCards 호출 포함)
     document.getElementById('player-cards').appendChild(createCardElement(playerHand[0]));
     reorderCards('player-cards');
     await sleep(400);
-    
-    // 1번째 딜러 카드
+
     document.getElementById('dealer-cards').appendChild(createCardElement(dealerHand[0]));
     reorderCards('dealer-cards');
     await sleep(400);
-    
-    // 2번째 플레이어 카드
+
     document.getElementById('player-cards').appendChild(createCardElement(playerHand[1]));
     reorderCards('player-cards');
     await sleep(400);
-    
-    // 2번째 딜러 카드 (뒷면)
+
     document.getElementById('dealer-cards').appendChild(createCardElement(dealerHand[1], true));
     reorderCards('dealer-cards');
-    
+
     updateUI();
     actionBtns.classList.remove('hidden');
     messageEl.innerText = "Hit or Stay?";
@@ -639,13 +633,17 @@ function getSymbolPositions(num) {
 }
 
 function reorderCards(containerId) {
-    const cards = document.getElementById(containerId).querySelectorAll('.card-container');
-    const overlapValue = cards.length >= 3 ? 40 : 0;
-    cards.forEach((card, index) => {
-        card.style.position = 'relative';
-        card.style.zIndex = index;
-        card.style.marginLeft = index > 0 ? `-${overlapValue}px` : '0px';
-    });
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const cards = container.children;
+    const overlap = 30; // 카드 사이의 간격
+
+    for (let i = 0; i < cards.length; i++) {
+        cards[i].style.position = 'absolute';
+        // 중앙 정렬 로직 보정
+        cards[i].style.left = `calc(50% - 40px + ${(i - (cards.length - 1) / 2) * overlap}px)`;
+        cards[i].style.zIndex = i;
+    }
 }
 
 document.getElementById('back-to-lobby').onclick = () => {

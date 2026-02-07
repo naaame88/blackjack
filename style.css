@@ -118,16 +118,19 @@ body {
 .card-row {
     display: flex;
     justify-content: center;
-    min-height: 160px; /* 높이가 없으면 카드가 안 보입니다 */
+    min-height: 150px; /* 반드시 높이가 지정되어야 카드가 보입니다 */
     position: relative;
-    margin: 15px 0;
+    width: 100%;
+    margin: 20px 0;
 }
 
-/* 카드 자체의 스타일 */
 .card {
     width: 80px;
     height: 120px;
-    position: absolute; /* reorderCards 함수가 위치를 잡기 위해 필요 */
+    position: absolute; /* 이 속성이 있어야 reorderCards가 작동합니다 */
+    background: white;
+    border-radius: 8px;
+    box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
 }
 
 .card:hover { transform: translateY(-10px) rotate(-2deg); z-index: 100; }
